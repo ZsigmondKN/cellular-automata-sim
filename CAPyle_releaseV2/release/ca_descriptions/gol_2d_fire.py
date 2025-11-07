@@ -2,6 +2,7 @@
 # Dimensions: 2
 
 # --- Set up executable path, do not edit ---
+from logging import config
 import sys
 import inspect
 this_file_loc = (inspect.stack()[0][1])
@@ -50,34 +51,52 @@ def setup(args):
     # ---- Override the defaults below (these may be changed at anytime) ----
 
     config.state_colors = [
-        (0,0,0), # CHAP - NB - LOW
-        (0,0,0), # CHAP - NB - MED
-        (0,0,0), # CHAP - NB - HIGH
-        (0,0,0), # CHAP - B - LOW
-        (0,0,0), # CHAP - B - MED
-        (0,0,0), # CHAP - B - HIGH
-        (0,0,1), # WATER
-        (0,0,0), # UNUSED
-        (0,0,0), # UNUSED
-        (1,0,0), # Forest - NB - LOW
-        (1,0,0), # Forest - NB - MED
-        (1,0,0), # Forest - NB - HIGH
-        (1,0,0), # Forest - B - LOW
-        (1,0,0), # Forest - B - MED
-        (1,0,0), # Forest - B - HIGH
-        (0,0,0), # UNUSED
-        (0,0,0), # UNUSED
-        (0,0,0), # UNUSED
-        (1,0,0), # Scrub - NB - LOW
-        (1,0,0), # Scrub - NB - MED
-        (1,0,0), # Scrub - NB - HIGH
-        (1,0,0), # Scrub - B - LOW
-        (1,0,0), # Scrub - B - MED
-        (1,0,0), # Scrub - B - HIGH
-        (0,0,0), # UNUSED
-        (0,0,0), # UNUSED
-        (0,0,0), # UNUSED
+        # CHAP (orange)
+        (1.0, 0.7, 0.3),  # CHAP - NB - LOW
+        (1.0, 0.5, 0.1),  # CHAP - NB - MED
+        (0.8, 0.3, 0.0),  # CHAP - NB - HIGH
+        (1.0, 0.2, 0.2),  # CHAP - B - LOW (vibrant red)
+        (0.9, 0.1, 0.1),  # CHAP - B - MED
+        (0.7, 0.0, 0.0),  # CHAP - B - HIGH
+
+        # BURNED
+        (0,0,0),
+
+        # UNUSED
+        (1,1,1),
+
+        # WATER
+        (0.0, 0.4, 1.0),
+
+        # FOREST (dark green)
+        (0.2, 0.5, 0.2),  # Forest - NB - LOW
+        (0.1, 0.4, 0.1),  # Forest - NB - MED
+        (0.05, 0.25, 0.05),# Forest - NB - HIGH
+        (1.0, 0.2, 0.2),  # Forest - B - LOW (vibrant red)
+        (0.9, 0.1, 0.1),  # Forest - B - MED
+        (0.7, 0.0, 0.0),  # Forest - B - HIGH
+
+        # BURNED
+        (0,0,0),
+
+        # UNUSED
+        (1,1,1), (1,1,1),
+
+        # SCRUB (yellow)
+        (1.0, 1.0, 0.6),  # Scrub - NB - LOW
+        (1.0, 0.9, 0.3),  # Scrub - NB - MED
+        (0.9, 0.8, 0.1),  # Scrub - NB - HIGH
+        (1.0, 0.2, 0.2),  # Scrub - B - LOW (vibrant red)
+        (0.9, 0.1, 0.1),  # Scrub - B - MED
+        (0.7, 0.0, 0.0),  # Scrub - B - HIGH
+
+        # BURNED
+        (0,0,0),
+
+        # UNUSED
+        (1,1,1), (1,1,1)
     ]
+
     # config.num_generations = 150
     # config.grid_dims = (200,200)
 
