@@ -42,7 +42,7 @@ def setup(args):
     config_path = args[0]
     config = utils.load(config_path)
     # ---THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED---
-    config.title = "Conway's game of life"
+    config.title = "Conway's game of life (with illness)"
     config.dimensions = 2
     config.states = (0, 1, 2)
     # ------------------------------------------------------------------------
