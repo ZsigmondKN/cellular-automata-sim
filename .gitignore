@@ -1,6 +1,6 @@
 # --- OUR GITIGNORE ---
 .DS_Store
-
+CAPyle_releaseV2/release/temp/*
 
 # --- PYTHON GITIGNORE ---
 # Byte-compiled / optimized / DLL files
