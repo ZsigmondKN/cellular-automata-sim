@@ -1,6 +1,6 @@
 # --- OUR GITIGNORE ---
 .DS_Store
-CAPyle_releaseV2/release/temp/*
+CAPyle_releaseV2/release/temp/*.pkl
 
 # --- PYTHON GITIGNORE ---
 # Byte-compiled / optimized / DLL files
