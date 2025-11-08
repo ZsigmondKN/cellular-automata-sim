@@ -10,53 +10,65 @@ from capyle.guicomponents import _Separator, _CAGraph
 
 class _EditInitialGridWindow(tk.Toplevel):
 
-    def __init__(self, ca_config, proportions=False, custom=False):
+    def __init__(self, ca_config, proportions=False, custom=False, edit=False):
         """Create top level window containing the appropriate controls"""
-        # superclass
         tk.Toplevel.__init__(self)
-
         set_icon(self)
 
         self.configframe = None
         self.update_config(ca_config)
 
-        # 1d check
+        # Determine mode
+        if proportions:
+            mode = 'proportions'
+        elif custom:
+            mode = 'custom'
+        else:
+            mode = 'edit'
+
+        self.mode = mode
+
+        # 1D or 2D grid setup
         if self.ca_config.dimensions == 1:
             self.grid = np.empty((1, self.ca_config.grid_dims[1]))
         else:
             self.grid = np.empty(self.ca_config.grid_dims)
-        self.grid.fill(self.ca_config.states[0])
 
-        # Display each colour on the grid to
-        # initialise the colormap correctly
-        # it is reset after the graph has been created
+        # Initialize grid depending on mode
+        if mode == 'edit' and hasattr(self.ca_config, "initial_grid"):
+            self.grid = np.copy(self.ca_config.initial_grid)
+        else:
+            self.grid.fill(self.ca_config.states[0])
+
+        # Display each colour on the grid to initialise colormap correctly
         for i, state in enumerate(self.ca_config.states):
-            self.grid[0, i] = state
+            self.grid[0, i % self.grid.shape[1]] = state
 
-        # title
+        # Title
         titleframe = tk.Frame(self)
         title_font = tkFont.Font(titleframe, family="Helvetica",
                                  size=18, weight=tkFont.BOLD)
-        mode = 'proportions' if proportions else 'custom'
-        titletxt = 'Initial configuraion editor - {mode}'.format(mode=mode)
+        titletxt = f"Initial configuration editor - {mode}"
         title = tk.Label(titleframe, text=titletxt, font=title_font)
         title.pack(side=tk.LEFT)
         titleframe.pack(fill=tk.BOTH)
 
-        # Add the graph frame
+        # Add graph frame
         rframe = tk.Frame(self)
         graphframe = tk.Frame(rframe, width=400, height=400)
         self.add_graph(graphframe, mode)
         graphframe.pack()
 
-        # hover coords label
+        # Hover coordinate label
         self.coords = tk.Label(rframe, text="[0, 0]")
         self.coords.pack()
         rframe.pack(side=tk.RIGHT)
 
-        # Init the config frame for sidebar
+        # Config sidebar
         self.configframe = _ConfigFrame(
-            self, self.ca_config, proportions=proportions, custom=custom)
+            self, self.ca_config, proportions=proportions,
+            custom=custom, edit=(mode == 'edit')
+        )
         self.configframe.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
 
     def get_initial_grid(self):
@@ -74,7 +86,7 @@ class _EditInitialGridWindow(tk.Toplevel):
         self.graph = _CAGraph(self.grid, self.ca_config.states)
 
         self.ca_canvas = FigureCanvasTkAgg(self.graph.fig, master=parent)
-        if mode == 'custom':
+        if mode in ('custom', 'edit'):
             self.graph.fig.canvas.mpl_connect("button_press_event",
                                               self.onaxesclick)
         self.graph.fig.canvas.mpl_connect("motion_notify_event",
@@ -105,16 +117,14 @@ class _EditInitialGridWindow(tk.Toplevel):
 
     def onaxeshover(self, event):
         """Display the cell index currently being hovered on the graph"""
-        row = None
-        col = None
         if event.inaxes is not None:
             row, col = self.get_graph_indices(event)
         else:
             row, col = 0, 0
-        self.coords.config(text="[{}, {}]".format(row, col))
+        self.coords.config(text=f"[{row}, {col}]")
 
     def get_graph_indices(self, event):
-        """Translate mouse position on graph to indicies in grid"""
+        """Translate mouse position on graph to indices in grid"""
         col = clip_numeric(int(event.xdata + 0.5),
                            0, self.ca_config.grid_dims[1] - 1)
         row = clip_numeric(int(event.ydata + 0.5),
@@ -127,7 +137,6 @@ class _EditInitialGridWindow(tk.Toplevel):
             row, col = self.get_graph_indices(event)
             state = self.ca_config.states[
                 self.configframe.selected_state_index.get()]
-
             self.grid[row, col] = state
             self.graphset()
             self.graph.refresh()
@@ -138,21 +147,27 @@ class _EditInitialGridWindow(tk.Toplevel):
 
 class _ConfigFrame(tk.Frame):
 
-    def __init__(self, parent, ca_config, proportions=False, custom=False):
-        # superclass frame
+    def __init__(self, parent, ca_config, proportions=False, custom=False, edit=False):
         tk.Frame.__init__(self, parent, width=200, height=400)
 
         self.parent = parent
-        # update the config object handle
         self.update_config(ca_config)
-        # set the mode of the window
-        self.mode = 'proportions' if proportions else 'custom'
-        # add the dropdown for background state
-        self.add_backgroundselect(parent=self)
 
+        # Determine mode
+        if proportions:
+            self.mode = 'proportions'
+        elif custom:
+            self.mode = 'custom'
+        elif edit:
+            self.mode = 'edit'
+        else:
+            self.mode = 'custom'
+
+        # Background state dropdown
+        self.add_backgroundselect(parent=self)
         _Separator(self).pack(fill=tk.BOTH, padx=5, pady=10)
 
-        # Add the appropriate state
+        # Mode-specific UI
         if proportions:
             self.add_proportions(parent=self)
         else:
@@ -160,8 +175,8 @@ class _ConfigFrame(tk.Frame):
 
         self.set_default()
 
-        # set the exit command for when the save and close is clicked
-        if custom:
+        # Save and close button
+        if self.mode in ('custom', 'edit'):
             exit_var = self.parent.graphset
         else:
             exit_var = self.apply_proportions
@@ -178,7 +193,6 @@ class _ConfigFrame(tk.Frame):
     def add_backgroundselect(self, parent):
         """Dropdown menu to select the background state in either case"""
         backgroundframe = tk.Frame(parent)
-
         label = tk.Label(backgroundframe, text="Background state")
         label.pack(side=tk.LEFT)
 
@@ -218,24 +232,19 @@ class _ConfigFrame(tk.Frame):
         container = tk.Frame(parent)
         for i, state in enumerate(self.ca_config.states):
             frame = tk.Frame(container)
-            # label
             label = tk.Label(frame, text=state)
             label.pack(side=tk.LEFT)
-            # color indicator
             color = rgb_to_hex(*self.ca_config.state_colors[i])
             colorindicator = self.colorindicator(frame, INDICATORSIZE, color)
             colorindicator.pack(side=tk.LEFT)
-            # entry
             entryvar = tk.StringVar(frame)
             entry = tk.Entry(frame, width=3, textvariable=entryvar)
             entry.pack(side=tk.LEFT)
             entry_label = tk.Label(frame, text='%')
 
-            # disable the background state entry
             if str(state) == self.optvar.get():
                 entry.config(state=tk.DISABLED)
 
-            # keep handle on the entry
             self.proportionentries.append(entry)
             entry_label.pack(side=tk.LEFT)
             frame.pack(fill=tk.BOTH)
@@ -255,9 +264,7 @@ class _ConfigFrame(tk.Frame):
         self.selected_state_index = tk.IntVar()
         self.radio_states = []
 
-        # outer container for the options
         container = tk.Frame(parent)
-        # Add the label, radio button and color for each state
         for i, state in enumerate(self.ca_config.states):
             frame = tk.Frame(container)
             label = tk.Label(frame, text=state)
@@ -309,7 +316,12 @@ class _ConfigFrame(tk.Frame):
         return proportions
 
     def set_default(self):
-        self.parent.grid = self.parent.get_initial_grid()
+        """Set grid to initial or empty depending on mode"""
+        if hasattr(self.parent.ca_config, "initial_grid"):
+            self.parent.grid = np.copy(self.parent.ca_config.initial_grid)
+        else:
+            self.parent.grid = self.parent.get_initial_grid()
+
         self.optvar.set(self.options[0])
         if self.mode == 'proportions':
             proportions = self.calc_proportions(self.parent.grid)

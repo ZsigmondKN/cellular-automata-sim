@@ -43,6 +43,13 @@ def setup(args):
     config_path = args[0]
     config = utils.load(config_path)
     # ---THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED---
+    preset_grid = np.zeros((10, 10))
+    preset_grid[3:6, 3:6] = 1   # small 3x3 block of state 1
+    preset_grid[7, 2:5] = 2     # a stripe of state 2
+
+    config.initial_grid = preset_grid
+
+
     config.title = "Fire Simulation"
     config.dimensions = 2
     config.states = range(27)
