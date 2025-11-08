@@ -230,6 +230,7 @@ class _ConfigFrame(tk.Frame):
         titleframe.pack(fill=tk.BOTH)
 
         container = tk.Frame(parent)
+        num_states = len(self.ca_config.states)
         for i, state in enumerate(self.ca_config.states):
             frame = tk.Frame(container)
             label = tk.Label(frame, text=state)
@@ -247,10 +248,15 @@ class _ConfigFrame(tk.Frame):
 
             self.proportionentries.append(entry)
             entry_label.pack(side=tk.LEFT)
-            frame.pack(fill=tk.BOTH)
+
+            row = i // 2
+            col = i % 2
+            frame.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+
+        # apply button spans both columns
         btn_apply = tk.Button(container, text="Apply",
-                              command=self.apply_proportions)
-        btn_apply.pack()
+                            command=self.apply_proportions)
+        btn_apply.grid(row=(num_states // 2) + 1, column=0, columnspan=2, pady=5)
         container.pack()
 
     def add_paint_states(self, parent):
