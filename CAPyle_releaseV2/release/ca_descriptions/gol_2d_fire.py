@@ -19,25 +19,36 @@ import numpy as np
 
 
 def transition_func(grid, neighbourstates, neighbourcounts):
-    # dead = state == 0, live = state == 1
-    # unpack state counts for state 0 and state 1
-    dead_neighbours, live_neighbours, sick_neighbors = neighbourcounts
-    # create boolean arrays for the birth & survival rules
-    # if 3 live neighbours and is dead -> cell born
-    birth = ((live_neighbours + sick_neighbors) == 3) & (grid == 0)
-    # if 2 or 3 live neighbours and is alive -> survives
-    survive = ((live_neighbours == 2) | (live_neighbours == 3)) & (grid == 1)
-    sick = ((grid == 1) & (sick_neighbors > 2)) | ((grid == 2) & ((sick_neighbors + live_neighbours) > 0))
-    death_by_sick = ((grid == 2) & (sick_neighbors > 4))
-
-    # Set all cells to 0 (dead)
+    ignite = (1 <= neighbourcounts[9]) & (grid == 0)
+    burning = (grid == 9)
+    die_out = (8 <= neighbourcounts[9] + neighbourcounts[12]) & (grid == 9)
+    burned = (grid == 12)
+    
     grid[:, :] = 0
-    # Set cells to 1 where either cell is born or survives
-    grid[birth | survive] = 1
-    grid[sick] = 2
-    grid[death_by_sick] = 0
+    grid[ignite | burning] = 9
+    grid[die_out | burned] = 12
     return grid
 
+# def apply_wind(grid, wind_direction):
+#     # wind_direction is a tuple (dx, dy) indicating the direction of the wind
+#     dx, dy = wind_direction
+#     shifted_grid = np.roll(grid, shift=dx, axis=0)
+#     shifted_grid = np.roll(shifted_grid, shift=dy, axis=1)
+#     return shifted_grid
+
+# def apply_temperature(grid, temperature):
+#     # Apply temperature effects to the grid
+#     # For simplicity, let's say temperature is a scalar that increases the chance of fire
+#     fire_chance = 0.1 + 0.1 * temperature
+#     # Randomly ignite new fires based on the temperature
+#     new_fires = (grid == 1) & (np.random.rand(*grid.shape) < fire_chance)
+#     grid[new_fires] = 2
+#     return grid
+
+# def change_state(grid, from_state, to_state, condition):
+#     # Change cells from from_state to to_state based on a condition
+#     grid[(grid == from_state) & condition] = to_state
+#     return grid
 
 def setup(args):
     config_path = args[0]
@@ -45,60 +56,35 @@ def setup(args):
     # ---THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED---
     config.title = "Fire Simulation"
     config.dimensions = 2
-    config.states = range(27)
-    # ------------------------------------------------------------------------
-
-    # ---- Override the defaults below (these may be changed at anytime) ----
+    config.states = range(14)
 
     config.state_colors = [
         # CHAP (orange)
-        (1.0, 0.7, 0.3),  # CHAP - NB - LOW
-        (1.0, 0.5, 0.1),  # CHAP - NB - MED
-        (0.8, 0.3, 0.0),  # CHAP - NB - HIGH
-        (1.0, 0.2, 0.2),  # CHAP - B - LOW (vibrant red)
-        (0.9, 0.1, 0.1),  # CHAP - B - MED
-        (0.7, 0.0, 0.0),  # CHAP - B - HIGH
-
-        # BURNED
-        (0,0,0),
-
-        # UNUSED
-        (1,1,1),
-
-        # WATER
-        (0.0, 0.4, 1.0),
+        (1.0, 0.7, 0.3),    # CHAP - LOW
+        (1.0, 0.5, 0.1),    # CHAP - MED
+        (0.8, 0.3, 0.0),    # CHAP - HIGH
 
         # FOREST (dark green)
-        (0.2, 0.5, 0.2),  # Forest - NB - LOW
-        (0.1, 0.4, 0.1),  # Forest - NB - MED
-        (0.05, 0.25, 0.05),# Forest - NB - HIGH
-        (1.0, 0.2, 0.2),  # Forest - B - LOW (vibrant red)
-        (0.9, 0.1, 0.1),  # Forest - B - MED
-        (0.7, 0.0, 0.0),  # Forest - B - HIGH
-
-        # BURNED
-        (0,0,0),
-
-        # UNUSED
-        (1,1,1), (1,1,1),
+        (0.2, 0.5, 0.2),    # Forest - LOW
+        (0.1, 0.4, 0.1),    # Forest - MED
+        (0.05, 0.25, 0.05), # Forest - HIGH
 
         # SCRUB (yellow)
-        (1.0, 1.0, 0.6),  # Scrub - NB - LOW
-        (1.0, 0.9, 0.3),  # Scrub - NB - MED
-        (0.9, 0.8, 0.1),  # Scrub - NB - HIGH
-        (1.0, 0.2, 0.2),  # Scrub - B - LOW (vibrant red)
-        (0.9, 0.1, 0.1),  # Scrub - B - MED
-        (0.7, 0.0, 0.0),  # Scrub - B - HIGH
+        (1.0, 1.0, 0.6),    # Scrub - LOW
+        (1.0, 0.9, 0.3),    # Scrub - MED
+        (0.9, 0.8, 0.1),    # Scrub - HIGH
+
+        # BURNING (red)
+        (1.0, 0.2, 0.2),    # BURNING - LOW
+        (0.9, 0.1, 0.1),    # BURNING - MED
+        (0.7, 0.0, 0.0),    # BURNING - HIGH
 
         # BURNED
         (0,0,0),
 
-        # UNUSED
-        (1,1,1), (1,1,1)
+        # WATER
+        (0.0, 0.4, 1.0)
     ]
-
-    # config.num_generations = 150
-    # config.grid_dims = (200,200)
 
     # ----------------------------------------------------------------------
 
