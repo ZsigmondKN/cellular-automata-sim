@@ -5,6 +5,8 @@
 from logging import config
 import sys
 import inspect
+from cautils.noise_grid import generate_multi_region_noise_grid
+
 this_file_loc = (inspect.stack()[0][1])
 main_dir_loc = this_file_loc[:this_file_loc.index('ca_descriptions')]
 sys.path.append(main_dir_loc)
@@ -54,11 +56,22 @@ def setup(args):
     config_path = args[0]
     config = utils.load(config_path)
     # ---THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED---
-    preset_grid = np.zeros((10, 10))
-    preset_grid[3:6, 3:6] = 1   # small 3x3 block of state 1
-    preset_grid[7, 2:5] = 2     # a stripe of state 2
+    regions = [
+        # BASE
+        {'x': 0, 'y': 0, 'width': 200, 'height': 200, 'min_state': 0, 'max_state': 2, 'seed': 123},
 
-    config.initial_grid = preset_grid
+        # Forest
+        {'x': 50, 'y': 20, 'width': 30, 'height': 10, 'min_state': 3, 'max_state': 5, 'seed': 456},
+        {'x': 20, 'y': 20, 'width': 30, 'height': 80, 'min_state': 3, 'max_state': 5, 'seed': 456},
+        {'x': 20, 'y': 100, 'width': 80, 'height': 40, 'min_state': 3, 'max_state': 5, 'seed': 456},
+        
+        
+
+    ]
+
+    grid = generate_multi_region_noise_grid(shape=(200, 200), regions=regions, global_seed=2025)
+
+    config.initial_grid = grid
 
 
     config.title = "Fire Simulation"
