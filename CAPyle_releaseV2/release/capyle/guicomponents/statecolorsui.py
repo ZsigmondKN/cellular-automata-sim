@@ -49,7 +49,10 @@ class _StateColorsUI(tk.Frame, _ConfigUIComponent):
             label.pack(side=tk.LEFT)
             self.canvas[i].pack(side=tk.RIGHT)
             frame.pack(side=tk.LEFT)
-            if i % 3 == 2 and not (i == len(self.states) - 1):
+            # Change how many color boxes per row
+            COLS_PER_ROW = 10  # was 3 before
+
+            if i % COLS_PER_ROW == COLS_PER_ROW - 1 and not (i == len(self.states) - 1):
                 outerframe.pack()
                 outerframe = tk.Frame(self)
         outerframe.pack()
