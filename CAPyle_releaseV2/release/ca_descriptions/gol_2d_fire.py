@@ -75,7 +75,7 @@ def setup(args):
 
     grid = generate_multi_region_noise_grid(shape=(200, 200), regions=regions, global_seed=2025)
 
-    config.initial_grid = grid
+    config.initial_initial_grid = grid
 
 
     config.title = "Fire Simulation"

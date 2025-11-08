@@ -53,13 +53,13 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
         btn_custom.pack(side=tk.LEFT)
         customframe.pack(fill=tk.BOTH)
 
-        # --- Edit preset option
+        # --- Edit preset button
         editframe = tk.Frame(optionsframe)
-        rdo_edit = tk.Radiobutton(editframe, text="Edit preset",
-                                  variable=self.selected, value=2)
-        btn_edit = tk.Button(editframe, text="Edit",
-                             command=lambda: self.editinitgrid(edit=True))
-        rdo_edit.pack(side=tk.LEFT)
+        # rdo_edit = tk.Radiobutton(editframe, text="Edit preset",
+                                #   variable=self.selected, value=2)
+        btn_edit = tk.Button(editframe, text="Set Default Initial!",
+                             command=lambda: self.set_initial_initial())
+        # rdo_edit.pack(side=tk.LEFT)
         btn_edit.pack(side=tk.LEFT)
         editframe.pack(fill=tk.BOTH)
 
@@ -67,7 +67,7 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
         optionsframe.pack()
 
         # Keep handles on the radio buttons for external use
-        self.radiobuttons = [rdo_proportions, rdo_custom, rdo_edit, rdo_centercell]
+        self.radiobuttons = [rdo_proportions, rdo_custom, rdo_centercell]
         self.set_default()
 
     def update_config(self, ca_config):
@@ -98,6 +98,9 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
         center = int(self.ca_config.grid_dims[1] / 2)
         new_row[0, center] = 1
         self.ca_config.set_initial_grid(new_row)
+
+    def set_initial_initial(self):
+        self.ca_config.initial_grid = self.ca_config.initial_initial_grid
 
     def editinitgrid(self, proportions=False, custom=False, edit=False):
         """Open the grid editing window in the selected mode"""

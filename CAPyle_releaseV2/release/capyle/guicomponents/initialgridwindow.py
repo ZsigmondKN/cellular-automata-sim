@@ -35,8 +35,8 @@ class _EditInitialGridWindow(tk.Toplevel):
             self.grid = np.empty(self.ca_config.grid_dims)
 
         # Initialize grid depending on mode
-        if mode == 'edit' and hasattr(self.ca_config, "initial_grid"):
-            self.grid = np.copy(self.ca_config.initial_grid)
+        if mode == 'edit' and hasattr(self.ca_config, "initial_initial_grid"):
+            self.grid = np.copy(self.ca_config.initial_initial_grid)
         else:
             self.grid.fill(self.ca_config.states[0])
 
@@ -101,7 +101,7 @@ class _EditInitialGridWindow(tk.Toplevel):
             grid = self.grid
         else:
             self.grid = grid
-        self.ca_config.set_initial_grid(grid)
+        self.ca_config.initial_grid = grid
         self.graph.setdata(grid)
         self.graph.refresh()
         if close:
