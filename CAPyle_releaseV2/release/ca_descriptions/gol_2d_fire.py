@@ -3,8 +3,10 @@
 
 # --- Set up executable path, do not edit ---
 from logging import config
+import random
 import sys
 import inspect
+
 from cautils.noise_grid import generate_multi_region_noise_grid
 
 this_file_loc = (inspect.stack()[0][1])
@@ -33,10 +35,20 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     combustable_fuel = extras["combustable_fuel"]
     temperature_c = extras["temperature_c"]
 
-    ignite = (neighbourcounts[9] >= 1) & (state_type == "Flammable")
+
+    ignite = (state_type == "Flammable") & (300 < temperature_c)
     burning = (grid == 9)
-    die_out = ((neighbourcounts[9] + neighbourcounts[12]) >= 8) & (state_type == "Burning") & (combustable_fuel <= 0)
-    np.subtract(combustable_fuel, 0.2, out=combustable_fuel, where=burning)
+    die_out = (state_type == "Burning") & (combustable_fuel <= 0)
+
+    influenced_by_fire = (1 <= neighbourcounts[9]) & (state_type == "Flammable")
+
+    # Fuel decrease for burning cells
+    np.subtract(combustable_fuel, 0.1, out=combustable_fuel, where=burning)
+
+    # Temperature increase for cells influenced by fire
+    temperature_increase = np.random.uniform(40, 300, size=influenced_by_fire.sum())
+    temperature_c[influenced_by_fire] += temperature_increase
+
     burned = (grid == 12)
 
     grid[ignite | burning] = 9
