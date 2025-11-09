@@ -130,6 +130,7 @@ def setup(args):
     config.title = "Fire Simulation"
     config.dimensions = 2
     config.states = range(14)
+    config.wrap = False
 
     config.state_colors = [
         # CHAP (orange)
