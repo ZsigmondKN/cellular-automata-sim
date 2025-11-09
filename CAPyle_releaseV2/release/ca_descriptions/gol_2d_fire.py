@@ -19,17 +19,47 @@ from capyle.ca import Grid2D, Neighbourhood, CAConfig, randomise2d
 import capyle.utils as utils
 import numpy as np
 
+FLAMMABLE_STATE_START = 0
+FLAMMABLE_STATE_END = 8
+BURNING_STATE_START = 9
+BURNING_STATE_END = 11
+BURNED_STATE = 12
+WATER_STATE = 13
 
-def transition_func(grid, neighbourstates, neighbourcounts):
-    ignite = (1 <= neighbourcounts[9]) & (grid == 0)
+
+
+def transition_func(grid, neighbourstates, neighbourcounts, extras):
+    state_type = check_state_types(grid)
+    combustable_fuel = extras["combustable_fuel"]
+    temperature_c = extras["temperature_c"]
+
+    ignite = (neighbourcounts[9] >= 1) & (state_type == "Flammable")
     burning = (grid == 9)
-    die_out = (8 <= neighbourcounts[9] + neighbourcounts[12]) & (grid == 9)
+    die_out = ((neighbourcounts[9] + neighbourcounts[12]) >= 8) & (state_type == "Burning") & (combustable_fuel <= 0)
+    np.subtract(combustable_fuel, 0.2, out=combustable_fuel, where=burning)
     burned = (grid == 12)
-    
-    grid[:, :] = 0
+
     grid[ignite | burning] = 9
     grid[die_out | burned] = 12
+
     return grid
+
+
+def check_state_types(grid):
+    state_type = np.full(grid.shape, "Unknown", dtype=object)
+
+    state_type[(FLAMMABLE_STATE_START <= grid) & (grid <= FLAMMABLE_STATE_END)] = "Flammable"
+    state_type[(BURNING_STATE_START <= grid) & (grid <= BURNING_STATE_END)] = "Burning"
+    state_type[grid == BURNED_STATE] = "Burned"
+    state_type[grid == WATER_STATE] = "Water"
+
+    return state_type
+
+
+def check_fuel(grid, combustable_fuel, state_type):
+    die_out = (state_type == "Burning") & (combustable_fuel > 0)
+    return die_out
+
 
 # def apply_wind(grid, wind_direction):
 #     # wind_direction is a tuple (dx, dy) indicating the direction of the wind
@@ -77,6 +107,25 @@ def setup(args):
 
     config.initial_initial_grid = grid
 
+    config.temperature_grid_c = np.zeros(grid.shape, dtype=np.float32)
+    config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
+
+    config.temperature_grid_c[:] = 25.0  # Default temperature
+    config.combustable_fuel_grid[:] = 0.0  # default
+
+    fuel_map = {
+        0: 0.5,  # CHAP - LOW
+        1: 0.7,  # CHAP - MED
+        2: 1.0,  # CHAP - HIGH
+        3: 0.6,  # Forest - LOW
+        4: 0.8,  # Forest - MED
+        5: 1.0,  # Forest - HIGH
+        6: 0.4,  # Scrub - LOW
+        7: 0.6,  # Scrub - MED
+        8: 0.8,  # Scrub - HIGH
+    }
+    for state, val in fuel_map.items():
+        config.combustable_fuel_grid[grid == state] = val
 
     config.title = "Fire Simulation"
     config.dimensions = 2
@@ -123,8 +172,16 @@ def main():
     # Open the config object
     config = setup(sys.argv[1:])
 
+    extra_attributes = {
+        "temperature_c": config.temperature_grid_c,
+        "combustable_fuel": config.combustable_fuel_grid
+    }
+
+    # Append extra arguments to the transition function
+    fire_transition = (transition_func, extra_attributes)
+
     # Create grid object
-    grid = Grid2D(config, transition_func)
+    grid = Grid2D(config, fire_transition)
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
