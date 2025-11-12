@@ -2,7 +2,6 @@
 # Dimensions: 2
 
 # --- Set up executable path, do not edit ---
-from logging import config
 import random
 import sys
 import inspect
@@ -54,6 +53,13 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     grid[ignite | burning] = 9
     grid[die_out | burned] = 12
 
+    # Apply cooling to burned cells
+    temperature_decrease = np.random.uniform(1, 3, size=burned.sum())
+    temperature_c[burned] -= temperature_decrease
+
+    # Apply regrowth
+    apply_regrowth(grid, neighbourcounts, temperature_c)
+
     return grid
 
 
@@ -94,7 +100,47 @@ def check_fuel(grid, combustable_fuel, state_type):
 #     grid[(grid == from_state) & condition] = to_state
 #     return grid
 
+def apply_regrowth(grid, neighborcounts, temperature):
+    # Random chances TODO: what should these be
+    regrow_probs = {
+        0: 0.02,
+        3: 0.005,
+        6: 0.1
+    }
+
+    # Reset any high density state to low density state (2 -> 0) e.t.c
+    init_val = config.initial_initial_grid - (config.initial_initial_grid%3)
+
+    # Only returs on burned cells with a normal temperature
+    burned_mask = (grid == 12) & (temperature < 30) 
+
+    # Add spontanious regrowth
+    for veg_type, p in regrow_probs.items():
+        random_mask = np.random.rand(*grid.shape) < (p * 0.05)
+        regrow_mask = burned_mask & random_mask & (init_val == veg_type)
+        grid[regrow_mask] = init_val[regrow_mask] 
+
+    # Add faster regrowth if parents are grown (seeding and microclimates and the like)
+    for veg_type, p in regrow_probs.items():
+        count_alive = np.sum(neighborcounts[veg_type:veg_type+3])
+        random_mask = np.random.rand(*grid.shape) < (p * count_alive * 0.1)
+        regrow_mask = burned_mask & random_mask
+        grid[regrow_mask] = veg_type
+
+    # Allow for (slow) growth of low density -> high density
+    for veg_type, p in regrow_probs.items():
+        alive_mask = (grid == veg_type) | (grid == veg_type+1)
+        random_mask = np.random.rand(*grid.shape) < (p * 0.01)
+        regrow_mask = alive_mask & random_mask
+        grid[regrow_mask] = grid[regrow_mask]+1
+    
+
+config = {}
+
 def setup(args):
+    # Share config across the class since i need the initial state for regrowth
+    global config
+    
     config_path = args[0]
     config = utils.load(config_path)
     # ---THE CA MUST BE RELOADED IN THE GUI IF ANY OF THE BELOW ARE CHANGED---
