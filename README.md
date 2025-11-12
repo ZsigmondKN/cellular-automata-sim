@@ -11,11 +11,12 @@ docker compose -f docker-compose-linux.yml up
 ```
 
 # TODO
-- Populate initial map [Will]
-- Buring function [Zig]
-    - wind [Zig] equations on first paper
-    - temperature [Zig]
-    - change state(check fuil amount if burning) [Zig]
-
-temp delta = x * y * z * rand(scale)
-map setup = gausian
+[x] Populate initial map - Will
+[ ] Buring function - Zig
+    - Convection
+    - Embers
+    - Change State (check fuel amount if burning)
+    - Ensure different materials have different properties
+[ ] Regrowth Function - Will
+    - Research (Atal)
+    - Transition
