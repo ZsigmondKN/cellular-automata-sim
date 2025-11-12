@@ -11,12 +11,12 @@ docker compose -f docker-compose-linux.yml up
 ```
 
 # TODO
-[x] Populate initial map - Will
-[ ] Buring function - Zig
+- [x] Populate initial map - Will
+- [ ] Buring function - Zig
     - Convection
     - Embers
     - Change State (check fuel amount if burning)
     - Ensure different materials have different properties
-[ ] Regrowth Function - Will
+- [ ] Regrowth Function - Will
     - Research (Atal)
     - Transition
