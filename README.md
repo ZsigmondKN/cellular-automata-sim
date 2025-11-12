@@ -19,5 +19,5 @@ docker compose -f docker-compose-linux.yml up
     - Change State (check fuel amount if burning) (chenge fire color based on density, purely performative but nice to have)
     - Ensure different materials have different properties
 - [ ] Regrowth Function - Will
-    - Research (Atal)
+    - Research + Initial Write-Up (Atal)
     - Transition
