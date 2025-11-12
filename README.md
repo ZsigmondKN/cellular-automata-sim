@@ -13,6 +13,7 @@ docker compose -f docker-compose-linux.yml up
 # TODO
 - [x] Populate initial map - Will
 - [ ] Buring function - Zig
+    - Research + Initial Write-Up (Atal)
     - Convection
     - Embers
     - Direct Flame Contact
@@ -21,3 +22,10 @@ docker compose -f docker-compose-linux.yml up
 - [ ] Regrowth Function - Will
     - Research + Initial Write-Up (Atal)
     - Transition
+- [ ] Map Updates - Week 8 activities
+    - Add city + fire sources (+size (find a source for this))
+    - Short Term Invervention
+        - Adding wetness (parameters + new state)
+    - Long Term Intervention
+        - Increasing Forest Size
+    
