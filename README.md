@@ -15,7 +15,8 @@ docker compose -f docker-compose-linux.yml up
 - [ ] Buring function - Zig
     - Convection
     - Embers
-    - Change State (check fuel amount if burning)
+    - Direct Flame Contact
+    - Change State (check fuel amount if burning) (chenge fire color based on density, purely performative but nice to have)
     - Ensure different materials have different properties
 - [ ] Regrowth Function - Will
     - Research (Atal)
