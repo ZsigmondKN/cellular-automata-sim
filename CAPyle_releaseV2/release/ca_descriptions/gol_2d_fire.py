@@ -5,7 +5,6 @@
 import random
 import sys
 import inspect
-
 from cautils.noise_grid import generate_multi_region_noise_grid
 
 this_file_loc = (inspect.stack()[0][1])
@@ -26,31 +25,57 @@ BURNING_STATE_START = 9
 BURNING_STATE_END = 11
 BURNED_STATE = 12
 WATER_STATE = 13
+CHAPARRAL_STATES = range(0, 3)
+FOREST_STATES = range(3, 6)
+SCRUB_STATES = range(6, 9)
+SCRUB_LOW = 1
+SCRUB_MEDIUM = 2
+SCRUB_HIGH = 3
 
-
+# each tick is between 1 to 3 hours
+# burning durration as outlined in assignments brief
+CHAPARRAL_LOW = 1 * 24
+CHAPARRAL_MEDIUM = 2 * 24
+CHAPARRAL_HIGH = 3 * 24
+FOREST_LOW = 24 * 10
+FOREST_MEDIUM = 24 * 20
+FOREST_HIGH = 24 * 28
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
-    state_type = check_state_types(grid)
+    # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
     temperature_c = extras["temperature_c"]
+    material_type = extras["material_type"]
+    state_type = check_state_types(grid)
+    density_type = check_density(grid, combustable_fuel, material_type)
 
-
+    # stage changes
     ignite = (state_type == "Flammable") & (300 < temperature_c)
-    burning = (grid == 9)
+    burning = (state_type == "Burning")
+    fire_high_density = (ignite | burning) & (density_type == "High")
+    fire_medium_density = (ignite | burning) & (density_type == "Medium")
+    fire_low_density = (ignite | burning) & (density_type == "Low")
     die_out = (state_type == "Burning") & (combustable_fuel <= 0)
-
-    influenced_by_fire = (1 <= neighbourcounts[9]) & (state_type == "Flammable")
+    burned = (state_type == "Burned")
 
     # Fuel decrease for burning cells
-    np.subtract(combustable_fuel, 0.1, out=combustable_fuel, where=burning)
+    random_tick_per_cell = np.random.uniform(1, 3, size=combustable_fuel.shape)
+    np.subtract(combustable_fuel, random_tick_per_cell, out=combustable_fuel, where=burning)
+
+    # update state type
+    state_type = check_state_types(grid)
+    burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
 
     # Temperature increase for cells influenced by fire
+    influenced_by_fire = (burning_neighbours) & (state_type == "Flammable")
     temperature_increase = np.random.uniform(40, 300, size=influenced_by_fire.sum())
     temperature_c[influenced_by_fire] += temperature_increase
 
-    burned = (grid == 12)
+    # Update grid
+    grid[fire_high_density] = 9
+    grid[fire_medium_density] = 10
+    grid[fire_low_density] = 11
 
-    grid[ignite | burning] = 9
     grid[die_out | burned] = 12
 
     # Apply cooling to burned cells
@@ -62,7 +87,6 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     return grid
 
-
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
 
@@ -73,32 +97,26 @@ def check_state_types(grid):
 
     return state_type
 
+def check_density(grid, combustable_fuel, material_type):
+    density_type = np.full(grid.shape, "Unknown", dtype=object)
+
+    density_type[(combustable_fuel < CHAPARRAL_LOW) & (material_type == "Chaparral")] = "Low"
+    density_type[(CHAPARRAL_LOW <= combustable_fuel) & (combustable_fuel < CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "Medium"
+    density_type[(combustable_fuel >= CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "High"
+
+    density_type[(combustable_fuel < FOREST_LOW) & (material_type == "Forest")] = "Low"
+    density_type[(FOREST_LOW <= combustable_fuel) & (combustable_fuel < FOREST_MEDIUM) & (material_type == "Forest")] = "Medium"
+    density_type[(combustable_fuel >= FOREST_MEDIUM) & (material_type == "Forest")] = "High"
+
+    density_type[(combustable_fuel < SCRUB_LOW) & (material_type == "Scrub")] = "Low"
+    density_type[(SCRUB_LOW <= combustable_fuel) & (combustable_fuel < SCRUB_MEDIUM) & (material_type == "Scrub")] = "Medium"
+    density_type[(combustable_fuel >= SCRUB_MEDIUM) & (material_type == "Scrub")] = "High"
+
+    return density_type
 
 def check_fuel(grid, combustable_fuel, state_type):
-    die_out = (state_type == "Burning") & (combustable_fuel > 0)
+    die_out = (state_type == "Burning") & (combustable_fuel <= 0)
     return die_out
-
-
-# def apply_wind(grid, wind_direction):
-#     # wind_direction is a tuple (dx, dy) indicating the direction of the wind
-#     dx, dy = wind_direction
-#     shifted_grid = np.roll(grid, shift=dx, axis=0)
-#     shifted_grid = np.roll(shifted_grid, shift=dy, axis=1)
-#     return shifted_grid
-
-# def apply_temperature(grid, temperature):
-#     # Apply temperature effects to the grid
-#     # For simplicity, let's say temperature is a scalar that increases the chance of fire
-#     fire_chance = 0.1 + 0.1 * temperature
-#     # Randomly ignite new fires based on the temperature
-#     new_fires = (grid == 1) & (np.random.rand(*grid.shape) < fire_chance)
-#     grid[new_fires] = 2
-#     return grid
-
-# def change_state(grid, from_state, to_state, condition):
-#     # Change cells from from_state to to_state based on a condition
-#     grid[(grid == from_state) & condition] = to_state
-#     return grid
 
 def apply_regrowth(grid, neighborcounts, temperature):
     # Random chances TODO: what should these be
@@ -133,7 +151,6 @@ def apply_regrowth(grid, neighborcounts, temperature):
         random_mask = np.random.rand(*grid.shape) < (p * 0.01)
         regrow_mask = alive_mask & random_mask
         grid[regrow_mask] = grid[regrow_mask]+1
-    
 
 config = {}
 
@@ -167,23 +184,28 @@ def setup(args):
 
     config.temperature_grid_c = np.zeros(grid.shape, dtype=np.float32)
     config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
+    config.material_type_grid = np.full(grid.shape, "Unknown", dtype=object)
 
     config.temperature_grid_c[:] = 25.0  # Default temperature
     config.combustable_fuel_grid[:] = 0.0  # default
 
     fuel_map = {
-        0: 0.5,  # CHAP - LOW
-        1: 0.7,  # CHAP - MED
-        2: 1.0,  # CHAP - HIGH
-        3: 0.6,  # Forest - LOW
-        4: 0.8,  # Forest - MED
-        5: 1.0,  # Forest - HIGH
-        6: 0.4,  # Scrub - LOW
-        7: 0.6,  # Scrub - MED
-        8: 0.8,  # Scrub - HIGH
+        0: CHAPARRAL_LOW,  # CHAP - LOW
+        1: CHAPARRAL_MEDIUM,  # CHAP - MED
+        2: CHAPARRAL_HIGH,  # CHAP - HIGH
+        3: FOREST_LOW,  # FOREST - LOW
+        4: FOREST_MEDIUM,  # FOREST - MED
+        5: FOREST_HIGH,  # FOREST - HIGH
+        6: SCRUB_LOW,  # SCRUB - LOW
+        7: SCRUB_MEDIUM,  # SCRUB - MED
+        8: SCRUB_HIGH,  # SCRUB - HIGH
     }
     for state, val in fuel_map.items():
         config.combustable_fuel_grid[grid == state] = val
+
+    config.material_type_grid[np.isin(grid, CHAPARRAL_STATES)] = "Chaparral"
+    config.material_type_grid[np.isin(grid, FOREST_STATES)] = "Forest"
+    config.material_type_grid[np.isin(grid, SCRUB_STATES)] = "Scrub"
 
     config.title = "Fire Simulation"
     config.dimensions = 2
@@ -207,9 +229,9 @@ def setup(args):
         (0.9, 0.8, 0.1),    # Scrub - HIGH
 
         # BURNING (red)
-        (1.0, 0.2, 0.2),    # BURNING - LOW
-        (0.9, 0.1, 0.1),    # BURNING - MED
-        (0.7, 0.0, 0.0),    # BURNING - HIGH
+        (1.0, 0.2, 0.2),    # BURNING - HIGH
+        (0.9, 0.1, 0.1),    # BURNING - Medium
+        (0.7, 0.0, 0.0),    # BURNING - Low
 
         # BURNED
         (0,0,0),
@@ -233,7 +255,8 @@ def main():
 
     extra_attributes = {
         "temperature_c": config.temperature_grid_c,
-        "combustable_fuel": config.combustable_fuel_grid
+        "combustable_fuel": config.combustable_fuel_grid,
+        "material_type": config.material_type_grid
     }
 
     # Append extra arguments to the transition function
