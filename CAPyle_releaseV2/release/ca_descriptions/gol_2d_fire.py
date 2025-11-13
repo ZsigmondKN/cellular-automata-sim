@@ -28,29 +28,40 @@ WATER_STATE = 13
 CHAPARRAL_STATES = range(0, 3)
 FOREST_STATES = range(3, 6)
 SCRUB_STATES = range(6, 9)
-SCRUB_LOW = 1
-SCRUB_MEDIUM = 2
-SCRUB_HIGH = 3
 
 # each tick is between 1 to 3 hours
 # burning durration as outlined in assignments brief
-CHAPARRAL_LOW = 1 * 24
-CHAPARRAL_MEDIUM = 2 * 24
-CHAPARRAL_HIGH = 3 * 24
-FOREST_LOW = 24 * 10
-FOREST_MEDIUM = 24 * 20
-FOREST_HIGH = 24 * 28
+BURN_DURATION_SCRUB_LOW = 1
+BURN_DURATION_SCRUB_MEDIUM = 2
+BURN_DURATION_SCRUB_HIGH = 3
+BURN_DURATION_CHAPARRAL_LOW = 1 * 24
+BURN_DURATION_CHAPARRAL_MEDIUM = 2 * 24
+BURN_DURATION_CHAPARRAL_HIGH = 3 * 24
+BURN_DURATION_FOREST_LOW = 24 * 10
+BURN_DURATION_FOREST_MEDIUM = 24 * 20
+BURN_DURATION_FOREST_HIGH = 24 * 28
+
+# ignition chance percentage range per tick
+IGNITION_CHANCE_SCRUB = 50
+IGNITION_CHANCE_CHAPARRAL = 30
+IGNITION_CHANCE_FOREST = 10
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
     temperature_c = extras["temperature_c"]
     material_type = extras["material_type"]
+    ignition_chance = extras["ignition_chance"]
     state_type = check_state_types(grid)
     density_type = check_density(grid, combustable_fuel, material_type)
 
+    # update state type
+    state_type = check_state_types(grid)
+    burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
+    perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
+
     # stage changes
-    ignite = (state_type == "Flammable") & (300 < temperature_c)
+    ignite = check_ignite(ignition_chance, perceptable_to_direct_flame)
     burning = (state_type == "Burning")
     fire_high_density = (ignite | burning) & (density_type == "High")
     fire_medium_density = (ignite | burning) & (density_type == "Medium")
@@ -65,11 +76,11 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     # update state type
     state_type = check_state_types(grid)
     burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
+    perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
     # Temperature increase for cells influenced by fire
-    influenced_by_fire = (burning_neighbours) & (state_type == "Flammable")
-    temperature_increase = np.random.uniform(40, 300, size=influenced_by_fire.sum())
-    temperature_c[influenced_by_fire] += temperature_increase
+    temperature_increase = np.random.uniform(40, 300, size=perceptable_to_direct_flame.sum())
+    temperature_c[perceptable_to_direct_flame] += temperature_increase
 
     # Update grid
     grid[fire_high_density] = 9
@@ -87,6 +98,13 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     return grid
 
+def check_ignite(ignition_chance, perceptable_to_direct_flame):
+    ignites = np.zeros(ignition_chance.shape, dtype=bool)
+    random_draws = np.random.uniform(0, 100, size=perceptable_to_direct_flame.sum())
+    ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance[perceptable_to_direct_flame])
+
+    return ignites
+
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
 
@@ -100,17 +118,17 @@ def check_state_types(grid):
 def check_density(grid, combustable_fuel, material_type):
     density_type = np.full(grid.shape, "Unknown", dtype=object)
 
-    density_type[(combustable_fuel < CHAPARRAL_LOW) & (material_type == "Chaparral")] = "Low"
-    density_type[(CHAPARRAL_LOW <= combustable_fuel) & (combustable_fuel < CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "Medium"
-    density_type[(combustable_fuel >= CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "High"
+    density_type[(combustable_fuel < BURN_DURATION_CHAPARRAL_LOW) & (material_type == "Chaparral")] = "Low"
+    density_type[(BURN_DURATION_CHAPARRAL_LOW <= combustable_fuel) & (combustable_fuel < BURN_DURATION_CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "Medium"
+    density_type[(combustable_fuel >= BURN_DURATION_CHAPARRAL_MEDIUM) & (material_type == "Chaparral")] = "High"
 
-    density_type[(combustable_fuel < FOREST_LOW) & (material_type == "Forest")] = "Low"
-    density_type[(FOREST_LOW <= combustable_fuel) & (combustable_fuel < FOREST_MEDIUM) & (material_type == "Forest")] = "Medium"
-    density_type[(combustable_fuel >= FOREST_MEDIUM) & (material_type == "Forest")] = "High"
-
-    density_type[(combustable_fuel < SCRUB_LOW) & (material_type == "Scrub")] = "Low"
-    density_type[(SCRUB_LOW <= combustable_fuel) & (combustable_fuel < SCRUB_MEDIUM) & (material_type == "Scrub")] = "Medium"
-    density_type[(combustable_fuel >= SCRUB_MEDIUM) & (material_type == "Scrub")] = "High"
+    density_type[(combustable_fuel < BURN_DURATION_FOREST_LOW) & (material_type == "Forest")] = "Low"
+    density_type[(BURN_DURATION_FOREST_LOW <= combustable_fuel) & (combustable_fuel < BURN_DURATION_FOREST_MEDIUM) & (material_type == "Forest")] = "Medium"
+    density_type[(combustable_fuel >= BURN_DURATION_FOREST_MEDIUM) & (material_type == "Forest")] = "High"
+    
+    density_type[(combustable_fuel < BURN_DURATION_SCRUB_LOW) & (material_type == "Scrub")] = "Low"
+    density_type[(BURN_DURATION_SCRUB_LOW <= combustable_fuel) & (combustable_fuel < BURN_DURATION_SCRUB_MEDIUM) & (material_type == "Scrub")] = "Medium"
+    density_type[(combustable_fuel >= BURN_DURATION_SCRUB_MEDIUM) & (material_type == "Scrub")] = "High"
 
     return density_type
 
@@ -185,20 +203,21 @@ def setup(args):
     config.temperature_grid_c = np.zeros(grid.shape, dtype=np.float32)
     config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
     config.material_type_grid = np.full(grid.shape, "Unknown", dtype=object)
+    config.ignition_chance_grid = np.zeros(grid.shape, dtype=np.float32)
 
     config.temperature_grid_c[:] = 25.0  # Default temperature
     config.combustable_fuel_grid[:] = 0.0  # default
 
     fuel_map = {
-        0: CHAPARRAL_LOW,  # CHAP - LOW
-        1: CHAPARRAL_MEDIUM,  # CHAP - MED
-        2: CHAPARRAL_HIGH,  # CHAP - HIGH
-        3: FOREST_LOW,  # FOREST - LOW
-        4: FOREST_MEDIUM,  # FOREST - MED
-        5: FOREST_HIGH,  # FOREST - HIGH
-        6: SCRUB_LOW,  # SCRUB - LOW
-        7: SCRUB_MEDIUM,  # SCRUB - MED
-        8: SCRUB_HIGH,  # SCRUB - HIGH
+        0: BURN_DURATION_CHAPARRAL_LOW,
+        1: BURN_DURATION_CHAPARRAL_MEDIUM,
+        2: BURN_DURATION_CHAPARRAL_HIGH,
+        3: BURN_DURATION_FOREST_LOW,
+        4: BURN_DURATION_FOREST_MEDIUM,
+        5: BURN_DURATION_FOREST_HIGH,
+        6: BURN_DURATION_SCRUB_LOW,
+        7: BURN_DURATION_SCRUB_MEDIUM,
+        8: BURN_DURATION_SCRUB_HIGH,
     }
     for state, val in fuel_map.items():
         config.combustable_fuel_grid[grid == state] = val
@@ -206,6 +225,10 @@ def setup(args):
     config.material_type_grid[np.isin(grid, CHAPARRAL_STATES)] = "Chaparral"
     config.material_type_grid[np.isin(grid, FOREST_STATES)] = "Forest"
     config.material_type_grid[np.isin(grid, SCRUB_STATES)] = "Scrub"
+
+    config.ignition_chance_grid[np.isin(grid, CHAPARRAL_STATES)] = IGNITION_CHANCE_CHAPARRAL
+    config.ignition_chance_grid[np.isin(grid, FOREST_STATES)] = IGNITION_CHANCE_FOREST
+    config.ignition_chance_grid[np.isin(grid, SCRUB_STATES)] = IGNITION_CHANCE_SCRUB
 
     config.title = "Fire Simulation"
     config.dimensions = 2
@@ -256,7 +279,8 @@ def main():
     extra_attributes = {
         "temperature_c": config.temperature_grid_c,
         "combustable_fuel": config.combustable_fuel_grid,
-        "material_type": config.material_type_grid
+        "material_type": config.material_type_grid,
+        "ignition_chance": config.ignition_chance_grid
     }
 
     # Append extra arguments to the transition function
