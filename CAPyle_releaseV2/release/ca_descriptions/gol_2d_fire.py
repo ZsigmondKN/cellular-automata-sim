@@ -42,9 +42,9 @@ BURN_DURATION_FOREST_MEDIUM = 24 * 20
 BURN_DURATION_FOREST_HIGH = 24 * 28
 
 # ignition chance percentage range per tick
-IGNITION_CHANCE_SCRUB = 50
-IGNITION_CHANCE_CHAPARRAL = 30
-IGNITION_CHANCE_FOREST = 10
+IGNITION_CHANCE_SCRUB = 10
+IGNITION_CHANCE_CHAPARRAL = 7
+IGNITION_CHANCE_FOREST = 2
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
     # get initial parameters
@@ -61,7 +61,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
     # stage changes
-    ignite = check_ignite(ignition_chance, perceptable_to_direct_flame)
+    ignite = check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates)
     burning = (state_type == "Burning")
     fire_high_density = (ignite | burning) & (density_type == "High")
     fire_medium_density = (ignite | burning) & (density_type == "Medium")
@@ -98,12 +98,29 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     return grid
 
-def check_ignite(ignition_chance, perceptable_to_direct_flame):
+def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates):
     ignites = np.zeros(ignition_chance.shape, dtype=bool)
     random_draws = np.random.uniform(0, 100, size=perceptable_to_direct_flame.sum())
-    ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance[perceptable_to_direct_flame])
+    wind_multiplier = affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates)
+    ignition_chance_with_wind = ignition_chance * wind_multiplier
+    ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance_with_wind[perceptable_to_direct_flame])
 
     return ignites
+
+def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates):
+    wind_multiplier = np.zeros(grid.shape, dtype=np.float32)
+    wind_multiplier[:] = 1.0 # Base multiplier
+
+    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[0]) & 
+               (neighbourstates[0] <= BURNING_STATE_END)] += 0.5
+    
+    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[1]) & 
+               (neighbourstates[1] <= BURNING_STATE_END)] += 10.0
+    
+    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[2]) & 
+               (neighbourstates[2] <= BURNING_STATE_END)] += 0.5
+    return wind_multiplier
+
 
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
