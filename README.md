@@ -33,15 +33,15 @@ docker compose -f docker-compose-linux.yml up
 
 # What factors to change
 **Default:**
-Power Plant [Wind South]
-Incinerator [Wind South]
+- Power Plant [Wind South]
+- Incinerator [Wind South]
 
 **Power Plant & Incinerator:**
-Short Term
-Long Term
-Short + Long Term
+- Short Term
+- Long Term
+- Short + Long Term
 
 **Incinerator:**
-Wind South
-Wind North
-Wind South East
+- Wind South
+- Wind North
+- Wind South East
