@@ -29,4 +29,19 @@ docker compose -f docker-compose-linux.yml up
     - Long Term Intervention
         - Increasing Forest Size
     - Remove dependence on temperature
-    
+    - Allow wind direction to change
+
+# What factors to change
+**Default:**
+Power Plant [Wind South]
+Incinerator [Wind South]
+
+**Power Plant & Incinerator:**
+Short Term
+Long Term
+Short + Long Term
+
+**Incinerator:**
+Wind South
+Wind North
+Wind South East

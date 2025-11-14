@@ -90,7 +90,8 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     grid[die_out | burned] = 12
 
     # Apply cooling to burned cells
-    temperature_decrease = np.random.uniform(1, 3, size=burned.sum())
+    # TODO: Find another way of tracking when we can regrow
+    temperature_decrease = np.random.uniform(1, 2, size=burned.sum())
     temperature_c[burned] -= temperature_decrease
 
     # Apply regrowth
@@ -156,8 +157,8 @@ def check_fuel(grid, combustable_fuel, state_type):
 def apply_regrowth(grid, neighborcounts, temperature):
     # Random chances TODO: what should these be
     regrow_probs = {
-        0: 0.02,
-        3: 0.005,
+        0: 0.04,
+        3: 0.02,
         6: 0.1
     }
 
