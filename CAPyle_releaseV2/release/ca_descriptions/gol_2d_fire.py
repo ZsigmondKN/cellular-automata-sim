@@ -172,7 +172,7 @@ def apply_regrowth(grid, neighborcounts, temperature, burned_out):
     fire_size = grid[np.isin(grid, BURNING_STATES)]
     
     is_fire_out = len(fire_size) < 2
-    print(time_since_gone)
+
     if (is_fire_out == False):
         return
     elif(time_since_gone < 30):
