@@ -28,6 +28,7 @@ WATER_STATE = 13
 CHAPARRAL_STATES = range(0, 3)
 FOREST_STATES = range(3, 6)
 SCRUB_STATES = range(6, 9)
+BURNING_STATES = range(9, 12)
 
 # each tick is between 1 to 3 hours
 # burning durration as outlined in assignments brief
@@ -154,19 +155,34 @@ def check_fuel(grid, combustable_fuel, state_type):
     die_out = (state_type == "Burning") & (combustable_fuel <= 0)
     return die_out
 
+time_since_gone = 0
+
 def apply_regrowth(grid, neighborcounts, temperature):
+    global time_since_gone
+
+    fire_size = grid[np.isin(grid, BURNING_STATES)]
+    
+    is_fire_out = len(fire_size) < 2
+    print(time_since_gone)
+    if (is_fire_out == False):
+        return
+    elif(time_since_gone < 30):
+        time_since_gone += 1
+        return
+
+
     # Random chances TODO: what should these be
     regrow_probs = {
         0: 0.04,
         3: 0.02,
-        6: 0.1
+        6: 0.2
     }
 
     # Reset any high density state to low density state (2 -> 0) e.t.c
     init_val = config.initial_initial_grid - (config.initial_initial_grid%3)
 
     # Only returs on burned cells with a normal temperature
-    burned_mask = (grid == 12) & (temperature < 30) 
+    burned_mask = (grid == 12) 
 
     # Add spontanious regrowth
     for veg_type, p in regrow_probs.items():
