@@ -21,7 +21,7 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Ensure different materials have different properties
 - [ ] Regrowth Function - Will
     - Research + Initial Write-Up (Atal)
-    - Transition
+    - [DONE] Transition
 - [ ] Map Updates - Week 8 activities
     - Add city + fire sources (+size (find a source for this))
     - Short Term Invervention

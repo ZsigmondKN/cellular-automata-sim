@@ -96,7 +96,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     temperature_c[burned] -= temperature_decrease
 
     # Apply regrowth
-    apply_regrowth(grid, neighbourcounts, temperature_c)
+    apply_regrowth(grid, neighbourcounts, temperature_c, die_out)
 
     return grid
 
@@ -156,9 +156,18 @@ def check_fuel(grid, combustable_fuel, state_type):
     return die_out
 
 time_since_gone = 0
+specific_gone_time_step = None
+time_step = 0
 
-def apply_regrowth(grid, neighborcounts, temperature):
-    global time_since_gone
+def apply_regrowth(grid, neighborcounts, temperature, burned_out):
+    global time_since_gone, specific_gone_time_step, time_step
+
+    time_step += 1
+
+    if (specific_gone_time_step is None):
+        specific_gone_time_step = np.zeros(grid.shape)
+
+    specific_gone_time_step[burned_out] = time_step
 
     fire_size = grid[np.isin(grid, BURNING_STATES)]
     
@@ -184,11 +193,15 @@ def apply_regrowth(grid, neighborcounts, temperature):
     # Only returs on burned cells with a normal temperature
     burned_mask = (grid == 12) 
 
-    # Add spontanious regrowth
+    prob_shape = (time_step - specific_gone_time_step) / 1200
+    prob_shape = np.clip(prob_shape, 0, 1)
+    
     for veg_type, p in regrow_probs.items():
-        random_mask = np.random.rand(*grid.shape) < (p * 0.05)
+        effective_p = p * prob_shape          # scale by prob_shape (0–1)
+        random_mask = np.random.rand(*grid.shape) < (effective_p * 0.05)
+
         regrow_mask = burned_mask & random_mask & (init_val == veg_type)
-        grid[regrow_mask] = init_val[regrow_mask] 
+        grid[regrow_mask] = init_val[regrow_mask]
 
     # Add faster regrowth if parents are grown (seeding and microclimates and the like)
     for veg_type, p in regrow_probs.items():
