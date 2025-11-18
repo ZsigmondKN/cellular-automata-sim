@@ -24,7 +24,7 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Ensure different materials have different properties
 - [ ] Regrowth Function - Will
     - Research + Initial Write-Up (Atal)
-    - Transition
+    - [DONE] Transition
 - [ ] Map Updates - Week 8 activities
     - Add city + fire sources (+size (find a source for this))
     - Short Term Invervention
@@ -32,4 +32,19 @@ docker compose -f docker-compose-linux.yml up
     - Long Term Intervention
         - Increasing Forest Size
     - Remove dependence on temperature
-    
+    - Allow wind direction to change
+
+# What factors to change
+**Default:**
+- Power Plant [Wind South]
+- Incinerator [Wind South]
+
+**Power Plant & Incinerator:**
+- Short Term
+- Long Term
+- Short + Long Term
+
+**Incinerator:**
+- Wind South
+- Wind North
+- Wind South East
