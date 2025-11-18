@@ -22,6 +22,7 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Direct Flame Contact
     - [DONE] Change State (check fuel amount if burning) (chenge fire color based on density, purely performative but nice to have)
     - [DONE] Ensure different materials have different properties
+        - [CHECK] Check that the fire still burns for the correct time after finishing all the other todos
 - [ ] Regrowth Function - Will
     - Research + Initial Write-Up (Atal)
     - [DONE] Transition
