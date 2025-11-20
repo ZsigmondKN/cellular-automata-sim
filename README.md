@@ -29,9 +29,9 @@ docker compose -f docker-compose-linux.yml up
     - Calculate times for regrowth and link back to literature (forest should take months, grass weeks)
 - [ ] Map Updates - Week 8 activities
     - [DONE] Add city + fire sources (+size (find a source for this))
-    - Short Term Invervention
+    - [WJ] Short Term Invervention
         - Adding wetness (parameters + new state)
-    - [WJ] Long Term Intervention
+    - [BUG] Long Term Intervention
         - Increasing Forest Size
     - [DONE] Remove dependence on temperature
     - Allow wind direction to change
