@@ -3,6 +3,7 @@ import numpy as np
 from capyle.guicomponents import (_ConfigUIComponent, _Separator,
                                   _EditInitialGridWindow)
 
+from ca_descriptions.fireutils.firefunctions import get_additional_funcs
 
 class _InitialGridUI(tk.Frame, _ConfigUIComponent):
 
@@ -59,6 +60,13 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
                                 #   variable=self.selected, value=2)
         btn_edit = tk.Button(editframe, text="Set Default Initial!",
                              command=lambda: self.set_initial_initial())
+
+        for (name, func) in get_additional_funcs():
+            btn_add = tk.Button(editframe, text=name,
+                             command=lambda f=func: f(self.ca_config))
+            btn_add.pack()
+            
+        
         # rdo_edit.pack(side=tk.LEFT)
         btn_edit.pack(side=tk.LEFT)
         editframe.pack(fill=tk.BOTH)

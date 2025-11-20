@@ -46,8 +46,13 @@ BURN_DURATION_FOREST_HIGH = 24 * 28
 IGNITION_CHANCE_SCRUB = 10
 IGNITION_CHANCE_CHAPARRAL = 7
 IGNITION_CHANCE_FOREST = 2
+time_step = 0
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
+    global time_step
+
+    time_step += 1
+
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
     temperature_c = extras["temperature_c"]
@@ -70,6 +75,8 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     die_out = (state_type == "Burning") & (combustable_fuel <= 0)
     burned = (state_type == "Burned")
 
+
+
     # Fuel decrease for burning cells
     random_tick_per_cell = np.random.uniform(1, 3, size=combustable_fuel.shape)
     np.subtract(combustable_fuel, random_tick_per_cell, out=combustable_fuel, where=burning)
@@ -89,6 +96,10 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     grid[fire_low_density] = 11
 
     grid[die_out | burned] = 12
+
+    if (len(grid[perceptable_to_direct_flame & (grid == 14)]) > 0):
+            grid[grid == 14] = 15
+            print(f"Hit City at timestep! {time_step}", flush=True)
 
     # Apply cooling to burned cells
     # TODO: Find another way of tracking when we can regrow
@@ -127,7 +138,7 @@ def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates):
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
 
-    state_type[(FLAMMABLE_STATE_START <= grid) & (grid <= FLAMMABLE_STATE_END)] = "Flammable"
+    state_type[((FLAMMABLE_STATE_START <= grid) & (grid <= FLAMMABLE_STATE_END)) | (grid == 14)] = "Flammable"
     state_type[(BURNING_STATE_START <= grid) & (grid <= BURNING_STATE_END)] = "Burning"
     state_type[grid == BURNED_STATE] = "Burned"
     state_type[grid == WATER_STATE] = "Water"
@@ -157,12 +168,9 @@ def check_fuel(grid, combustable_fuel, state_type):
 
 time_since_gone = 0
 specific_gone_time_step = None
-time_step = 0
 
 def apply_regrowth(grid, neighborcounts, temperature, burned_out):
     global time_since_gone, specific_gone_time_step, time_step
-
-    time_step += 1
 
     if (specific_gone_time_step is None):
         specific_gone_time_step = np.zeros(grid.shape)
@@ -241,6 +249,10 @@ def setup(args):
         
         # SCRUB
         {'x': 140, 'y': 40, 'width': 10, 'height': 90, 'min_state': 6, 'max_state': 8, 'seed': 193},
+
+        # CITY
+        {'x': 60, 'y': 200-20, 'width': 10, 'height': 10, 'min_state': 14, 'max_state': 14},
+        
     ]
 
     grid = generate_multi_region_noise_grid(shape=(200, 200), regions=regions, global_seed=2025)
@@ -279,7 +291,7 @@ def setup(args):
 
     config.title = "Fire Simulation"
     config.dimensions = 2
-    config.states = range(14)
+    config.states = range(16)
     config.wrap = False
 
     config.state_colors = [
@@ -307,8 +319,19 @@ def setup(args):
         (0,0,0),
 
         # WATER
-        (0.0, 0.4, 1.0)
+        (0.0, 0.4, 1.0),
+
+        # CITY
+        (1.0, 1.0, 1.0),
+
+        # CITY, burned
+        (0.8, 0.8, 0.8)
     ]
+
+    init_fire = getattr(config, "initfire", None)
+    if init_fire is not None:
+        for (x,y) in init_fire:
+            config.initial_grid[x,y] = 9
 
     # ----------------------------------------------------------------------
 
