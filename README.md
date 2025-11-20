@@ -17,7 +17,7 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Convection
         - [TODO] Implement different directions
         - [TODO] Fire spreads too quickly
-    - [TODO] Embers
+    - [DONE] Embers
         - [TODO] Implement different directions
     - [DONE] Direct Flame Contact
     - [DONE] Change State (check fuel amount if burning) (chenge fire color based on density, purely performative but nice to have)
