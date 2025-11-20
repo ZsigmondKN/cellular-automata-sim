@@ -1,4 +1,4 @@
-# Name: Conway's game of life
+# Name: Fire simulation
 # Dimensions: 2
 
 # --- Set up executable path, do not edit ---
@@ -67,6 +67,9 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     global time_step
     time_step += 1
 
+    if (time_step == 1):
+        scuffed_init(grid, extras)
+
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
     material_type = extras["material_type"]
@@ -107,7 +110,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     if (len(grid[perceptable_to_direct_flame & (grid == 14)]) > 0):
             grid[grid == 14] = 15
-            print(f"Hit City at timestep! {time_step}", flush=True)
+            print(f"Hit City at timestep: {time_step}", flush=True)
 
     # Apply regrowth
     apply_regrowth(grid, neighbourcounts, die_out)
@@ -284,7 +287,7 @@ def apply_regrowth(grid, neighborcounts, burned_out):
     }
 
     # Reset any high density state to low density state (2 -> 0) e.t.c
-    init_val = config.initial_initial_grid - (config.initial_initial_grid%3)
+    init_val = config.initial_grid - (config.initial_grid%3)
 
     burned_mask = (grid == 12) 
 
@@ -346,34 +349,6 @@ def setup(args):
 
     config.initial_initial_grid = grid
 
-    config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
-    config.material_type_grid = np.full(grid.shape, "Unknown", dtype=object)
-    config.ignition_chance_grid = np.zeros(grid.shape, dtype=np.float32)
-
-    config.combustable_fuel_grid[:] = 0.0  # default
-
-    fuel_map = {
-        0: BURN_DURATION_CHAPARRAL_LOW,
-        1: BURN_DURATION_CHAPARRAL_MEDIUM,
-        2: BURN_DURATION_CHAPARRAL_HIGH,
-        3: BURN_DURATION_FOREST_LOW,
-        4: BURN_DURATION_FOREST_MEDIUM,
-        5: BURN_DURATION_FOREST_HIGH,
-        6: BURN_DURATION_SCRUB_LOW,
-        7: BURN_DURATION_SCRUB_MEDIUM,
-        8: BURN_DURATION_SCRUB_HIGH,
-    }
-    for state, val in fuel_map.items():
-        config.combustable_fuel_grid[grid == state] = val
-
-    config.material_type_grid[np.isin(grid, CHAPARRAL_STATES)] = "Chaparral"
-    config.material_type_grid[np.isin(grid, FOREST_STATES)] = "Forest"
-    config.material_type_grid[np.isin(grid, SCRUB_STATES)] = "Scrub"
-
-    config.ignition_chance_grid[np.isin(grid, CHAPARRAL_STATES)] = IGNITION_CHANCE_CHAPARRAL
-    config.ignition_chance_grid[np.isin(grid, FOREST_STATES)] = IGNITION_CHANCE_FOREST
-    config.ignition_chance_grid[np.isin(grid, SCRUB_STATES)] = IGNITION_CHANCE_SCRUB
-
     config.title = "Fire Simulation"
     config.dimensions = 2
     config.states = range(16)
@@ -416,7 +391,7 @@ def setup(args):
     init_fire = getattr(config, "initfire", None)
     if init_fire is not None:
         for (x,y) in init_fire:
-            config.initial_grid[x,y] = 9
+            config.initial_grid[x,y] = 11
 
     config.wind_direction_set = getattr(config, "wind_direction_set", "No Wind")
     config.ember_set = getattr(config, "ember_set", True)
@@ -425,6 +400,7 @@ def setup(args):
     print(f"Ember usage was set to {config.ember_set}", flush=True)
 
     # ----------------------------------------------------------------------
+    scuffed_init(grid, {})
 
     if len(args) == 2:
         config.save()
@@ -432,6 +408,41 @@ def setup(args):
 
     return config
 
+def scuffed_init(grid, extras):
+    global config
+
+    config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
+    config.material_type_grid = np.full(grid.shape, "Unknown", dtype=object)
+    config.ignition_chance_grid = np.zeros(grid.shape, dtype=np.float32)
+
+    config.combustable_fuel_grid[:] = 0.0  # default
+
+    fuel_map = {
+        0: BURN_DURATION_CHAPARRAL_LOW,
+        1: BURN_DURATION_CHAPARRAL_MEDIUM,
+        2: BURN_DURATION_CHAPARRAL_HIGH,
+        3: BURN_DURATION_FOREST_LOW,
+        4: BURN_DURATION_FOREST_MEDIUM,
+        5: BURN_DURATION_FOREST_HIGH,
+        6: BURN_DURATION_SCRUB_LOW,
+        7: BURN_DURATION_SCRUB_MEDIUM,
+        8: BURN_DURATION_SCRUB_HIGH,
+    }
+
+    for state, val in fuel_map.items():
+        config.combustable_fuel_grid[grid == state] = val
+
+    config.material_type_grid[np.isin(grid, CHAPARRAL_STATES)] = "Chaparral"
+    config.material_type_grid[np.isin(grid, FOREST_STATES)] = "Forest"
+    config.material_type_grid[np.isin(grid, SCRUB_STATES)] = "Scrub"
+
+    config.ignition_chance_grid[np.isin(grid, CHAPARRAL_STATES)] = IGNITION_CHANCE_CHAPARRAL
+    config.ignition_chance_grid[np.isin(grid, FOREST_STATES)] = IGNITION_CHANCE_FOREST
+    config.ignition_chance_grid[np.isin(grid, SCRUB_STATES)] = IGNITION_CHANCE_SCRUB
+
+    extras["combustable_fuel"] = config.combustable_fuel_grid
+    extras["material_type"] = config.material_type_grid
+    extras["ignition_chance"] = config.ignition_chance_grid
 
 def main():
     # Open the config object

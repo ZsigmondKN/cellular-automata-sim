@@ -4,7 +4,7 @@ def get_additional_funcs():
             ("Custom Edit", do_nothing)]
 
 def setFireIncinerator(config):
-    set_square(config, origin=(0, 198), size=2)
+    set_square(config, origin=(0, 196), size=2)
 
 def setFireFactory(config):
     set_square(config, origin=(0, 20), size=2)

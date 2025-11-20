@@ -31,7 +31,7 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Add city + fire sources (+size (find a source for this))
     - [WJ] Short Term Invervention
         - Adding wetness (parameters + new state)
-    - [BUG] Long Term Intervention
+    - [DONE] Long Term Intervention
         - Increasing Forest Size
     - [DONE] Remove dependence on temperature
     - Update colors
