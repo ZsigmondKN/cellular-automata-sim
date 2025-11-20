@@ -9,4 +9,5 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
       DISPLAY: ":0"
+      PYTHONUNBUFFERED: "1"
     command: python3 CAPyle_releaseV2/release/main.py
