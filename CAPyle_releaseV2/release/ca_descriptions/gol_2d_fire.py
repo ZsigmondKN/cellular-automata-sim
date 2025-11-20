@@ -19,6 +19,7 @@ from capyle.ca import Grid2D, Neighbourhood, CAConfig, randomise2d
 import capyle.utils as utils
 import numpy as np
 
+# State definitions
 FLAMMABLE_STATE_START = 0
 FLAMMABLE_STATE_END = 8
 BURNING_STATE_START = 9
@@ -30,7 +31,9 @@ FOREST_STATES = range(3, 6)
 SCRUB_STATES = range(6, 9)
 BURNING_STATES = range(9, 12)
 
-# each tick is between 1 to 3 hours
+# each tick is 2 hours
+TICK_SPEED_IN_HOURS = 2
+
 # burning durration as outlined in assignments brief
 BURN_DURATION_SCRUB_LOW = 1
 BURN_DURATION_SCRUB_MEDIUM = 2
@@ -47,6 +50,16 @@ IGNITION_CHANCE_SCRUB = 10
 IGNITION_CHANCE_CHAPARRAL = 7
 IGNITION_CHANCE_FOREST = 2
 
+# ember chance percentage range per tick
+EMBER_CHANCE_SCRUB = 1
+EMBER_CHANCE_CHAPARRAL = 2
+EMBER_CHANCE_FOREST = 3
+
+# ember distance spread range per tick
+EMBER_DISTANCE_SCRUB = (1, 2)
+EMBER_DISTANCE_CHAPARRAL = (3, 6)
+EMBER_DISTANCE_FOREST = (5, 10)
+
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
@@ -57,12 +70,11 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     density_type = check_density(grid, combustable_fuel, material_type)
 
     # update state type
-    state_type = check_state_types(grid)
     burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
     perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
     # stage changes
-    ignite = check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates)
+    ignite = check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates) | check_ember(grid, state_type, material_type)
     burning = (state_type == "Burning")
     fire_high_density = (ignite | burning) & (density_type == "High")
     fire_medium_density = (ignite | burning) & (density_type == "Medium")
@@ -71,8 +83,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     burned = (state_type == "Burned")
 
     # Fuel decrease for burning cells
-    random_tick_per_cell = np.random.uniform(1, 3, size=combustable_fuel.shape)
-    np.subtract(combustable_fuel, random_tick_per_cell, out=combustable_fuel, where=burning)
+    np.subtract(combustable_fuel, TICK_SPEED_IN_HOURS, out=combustable_fuel, where=burning)
 
     # update state type
     state_type = check_state_types(grid)
@@ -109,6 +120,45 @@ def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourst
 
     return ignites
 
+def check_ember(grid, state_type, material_type):
+    embers_start_on = np.zeros(grid.shape, dtype=bool)
+    perceptable_to_embers = (state_type == "Flammable")
+    on_fire_scrub = (state_type == "Burning") & (material_type == "Scrub")
+    on_fire_chaparral = (state_type == "Burning") & (material_type == "Chaparral")
+    on_fire_forest = (state_type == "Burning") & (material_type == "Forest")
+    # Create random draws ONLY for the correct number of cells
+    random_draws      = np.random.uniform(0, 100, size=grid.shape)
+    cells_that_emit_embers_scrub = on_fire_scrub & (random_draws < EMBER_CHANCE_SCRUB)
+    cells_that_emit_embers_chaparral = on_fire_chaparral & (random_draws < EMBER_CHANCE_CHAPARRAL)
+    cells_that_emit_embers_forest = on_fire_forest & (random_draws < EMBER_CHANCE_FOREST)
+
+    embers_distance_scrub = np.round(np.random.uniform(EMBER_DISTANCE_SCRUB[0], EMBER_DISTANCE_SCRUB[1], size=cells_that_emit_embers_scrub.sum())).astype(int)
+    embers_distance_chaparral = np.round(np.random.uniform(EMBER_DISTANCE_CHAPARRAL[0], EMBER_DISTANCE_CHAPARRAL[1], size=cells_that_emit_embers_chaparral.sum())).astype(int)
+    embers_distance_forest = np.round(np.random.uniform(EMBER_DISTANCE_FOREST[0], EMBER_DISTANCE_FOREST[1], size=cells_that_emit_embers_forest.sum())).astype(int)
+
+    emitting_indices_scrub = np.argwhere(cells_that_emit_embers_scrub)
+    emitting_indices_chaparral = np.argwhere(cells_that_emit_embers_chaparral)
+    emitting_indices_forest = np.argwhere(cells_that_emit_embers_forest)
+    
+
+    def get_landing_positions(emitting_indices, embers_distance):
+        landing_x = emitting_indices[:, 0] + embers_distance  # south = increasing row
+        landing_y = emitting_indices[:, 1]                          # same column
+        landing_x = np.clip(landing_x, 0, grid.shape[0]-1)
+        landing_y = np.clip(landing_y, 0, grid.shape[1]-1)
+        return landing_x, landing_y
+    
+    scrub_landing_x, scrub_landing_y = get_landing_positions(emitting_indices_scrub, embers_distance_scrub)
+    chaparral_landing_x, chaparral_landing_y = get_landing_positions(emitting_indices_chaparral, embers_distance_chaparral)
+    forest_landing_x, forest_landing_y = get_landing_positions(emitting_indices_forest, embers_distance_forest)
+    
+    # Set embers_start_on at landing positions if perceptable_to_embers is True
+    embers_start_on[scrub_landing_x, scrub_landing_y] = perceptable_to_embers[scrub_landing_x, scrub_landing_y]
+    embers_start_on[chaparral_landing_x, chaparral_landing_y] = perceptable_to_embers[chaparral_landing_x, chaparral_landing_y]
+    embers_start_on[forest_landing_x, forest_landing_y] = perceptable_to_embers[forest_landing_x, forest_landing_y]
+    
+    return embers_start_on
+
 def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates):
     wind_multiplier = np.zeros(grid.shape, dtype=np.float32)
     wind_multiplier[:] = 1.0 # Base multiplier
@@ -122,7 +172,6 @@ def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates):
     wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[2]) & 
                (neighbourstates[2] <= BURNING_STATE_END)] += 0.5
     return wind_multiplier
-
 
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
