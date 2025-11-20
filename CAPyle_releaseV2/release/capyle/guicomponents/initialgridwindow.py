@@ -18,6 +18,12 @@ class _EditInitialGridWindow(tk.Toplevel):
         self.configframe = None
         self.update_config(ca_config)
 
+        # --- ADDED: track mouse dragging ---
+        self.mouse_down = False
+
+        # --- ADDED: brush size variable ---
+        self.brush_size = 1   # 0 = 1×1, 1 = 3×3, etc.
+
         # Determine mode
         if proportions:
             mode = 'proportions'
@@ -89,8 +95,18 @@ class _EditInitialGridWindow(tk.Toplevel):
         if mode in ('custom', 'edit'):
             self.graph.fig.canvas.mpl_connect("button_press_event",
                                               self.onaxesclick)
+
+        # Hover display
         self.graph.fig.canvas.mpl_connect("motion_notify_event",
                                           self.onaxeshover)
+
+        # Release to stop painting
+        self.graph.fig.canvas.mpl_connect("button_release_event",
+                                          self.onaxesrelease)
+
+        # Drag painting
+        self.graph.fig.canvas.mpl_connect("motion_notify_event",
+                                          self.onaxesdrag)
 
         parent.config(bd=5, relief=tk.GROOVE)
         self.ca_canvas.get_tk_widget().pack(padx=10, pady=10)
@@ -134,12 +150,39 @@ class _EditInitialGridWindow(tk.Toplevel):
     def onaxesclick(self, event):
         """Set the state of the cell clicked to the selected state"""
         if event.inaxes is not None:
+            self.mouse_down = True
             row, col = self.get_graph_indices(event)
             state = self.ca_config.states[
-                self.configframe.selected_state_index.get()]
-            self.grid[row, col] = state
+                self.configframe.selected_state_index.get()
+            ]
+            self.paint_with_brush(row, col, state)
             self.graphset()
             self.graph.refresh()
+
+    def onaxesrelease(self, event):
+        """Stop painting when mouse released"""
+        self.mouse_down = False
+
+    def onaxesdrag(self, event):
+        """Brush painting while mouse is held down"""
+        if self.mouse_down and event.inaxes is not None:
+            row, col = self.get_graph_indices(event)
+            state = self.ca_config.states[
+                self.configframe.selected_state_index.get()
+            ]
+            self.paint_with_brush(row, col, state)
+            self.graphset()
+            self.graph.refresh()
+
+    # --- Brush painting helper ---
+    def paint_with_brush(self, row, col, state):
+        r = self.brush_size
+        r0 = max(0, row - r)
+        r1 = min(self.grid.shape[0], row + r + 1)
+        c0 = max(0, col - r)
+        c1 = min(self.grid.shape[1], col + r + 1)
+
+        self.grid[r0:r1, c0:c1] = state
 
     def close(self):
         self.destroy()
@@ -286,6 +329,25 @@ class _ConfigFrame(tk.Frame):
             rdo_select.pack(side=tk.LEFT)
             frame.pack(fill=tk.BOTH)
         container.pack()
+
+        # --- ADDED: Brush size slider ---
+        brushframe = tk.Frame(parent)
+        tk.Label(brushframe, text="Brush size").pack(side=tk.LEFT)
+
+        self.brush_size_var = tk.IntVar()
+        self.brush_size_var.set(0)
+
+        brush_slider = tk.Scale(
+            brushframe,
+            from_=0,
+            to=10,
+            orient=tk.HORIZONTAL,
+            variable=self.brush_size_var,
+            command=lambda v: setattr(self.parent, "brush_size", int(v))
+        )
+        brush_slider.pack(side=tk.LEFT)
+
+        brushframe.pack(pady=10)
 
     def onchange(self, event):
         selected = int(event)
