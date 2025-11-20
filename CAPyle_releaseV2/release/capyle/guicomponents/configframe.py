@@ -150,3 +150,9 @@ class _ConfigFrame(tk.Frame):
         self.generations_entry.set(self.ca_config.num_generations)
         self.init_grid.update_config(self.ca_config)
         self.state_colors.update(self.ca_config, ca_graph)
+
+    def apply_button_changes(self):
+        """Apply wind / ember / initial-grid button changes."""
+        if hasattr(self, "init_grid"):
+            if hasattr(self.init_grid, "apply_button_changes"):
+                self.init_grid.apply_button_changes()

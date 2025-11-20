@@ -1,9 +1,10 @@
 import tkinter as tk
+from tkinter import ttk
 import numpy as np
 from capyle.guicomponents import (_ConfigUIComponent, _Separator,
                                   _EditInitialGridWindow)
 
-from ca_descriptions.fireutils.firefunctions import get_additional_funcs
+from ca_descriptions.fireutils.firefunctions import get_additional_ember_set, get_additional_funcs, get_additional_wind_dir
 
 class _InitialGridUI(tk.Frame, _ConfigUIComponent):
 
@@ -55,28 +56,106 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
         customframe.pack(fill=tk.BOTH)
 
         # --- Edit preset button
-        editframe = tk.Frame(optionsframe)
-        # rdo_edit = tk.Radiobutton(editframe, text="Edit preset",
-                                #   variable=self.selected, value=2)
-        btn_edit = tk.Button(editframe, text="Set Default Initial!",
-                             command=lambda: self.set_initial_initial())
+        _Separator(optionsframe).pack(fill=tk.X, pady=5)
+        labelframe = tk.Frame(optionsframe)
+        label = tk.Label(labelframe, text="Grid Setup Options:")
+        label.pack(side=tk.LEFT)
+        labelframe.pack(fill=tk.BOTH)
 
-        for (name, func) in get_additional_funcs():
-            btn_add = tk.Button(editframe, text=name,
-                             command=lambda f=func: f(self.ca_config))
-            btn_add.pack()
-            
+
+        editframe = tk.Frame(optionsframe)
+        self.grid_selected = tk.StringVar(value="")  # no default selection
+        style = ttk.Style()
+        style.configure("Grid.TButton", relief="raised")
+        style.map("Grid.TButton", relief=[("selected", "sunken")])
         
-        # rdo_edit.pack(side=tk.LEFT)
-        btn_edit.pack(side=tk.LEFT)
+        for name, func in get_additional_funcs():
+            rb = ttk.Radiobutton(editframe, text=name, value=name, variable=self.grid_selected, style="Grid.TButton",
+                command=lambda f=func: (self.set_initial_initial(), f(self.ca_config)))
+            rb.pack(side=tk.LEFT, padx=2)
+
         editframe.pack(fill=tk.BOTH)
 
         # Pack options
         optionsframe.pack()
 
+        windoptionsframe = tk.Frame(self)
+        _Separator(windoptionsframe).pack(fill=tk.X, pady=5)
+
+        labelframe = tk.Frame(windoptionsframe)
+        label = tk.Label(labelframe, text="Wind Direction Options:")
+        label.pack(side=tk.LEFT)
+        labelframe.pack(fill=tk.BOTH)
+
+        editWind = tk.Frame(windoptionsframe)
+
+        buttons = list(get_additional_wind_dir(self.ca_config))
+        half = (len(buttons) + 1) // 2
+
+        self.wind_selected = tk.StringVar(value="N to S") # Default selection
+
+        style = ttk.Style()
+        style.configure("Wind.TButton", relief="raised")
+        style.map("Wind.TButton",
+                relief=[("selected", "sunken")])
+
+        # Row 1
+        row1 = tk.Frame(editWind)
+        for name, func in buttons[:half]:
+            rb = ttk.Radiobutton(row1, text=name, value=name, variable=self.wind_selected, style="Wind.TButton",
+                command=lambda f=func: f(self.ca_config))
+            rb.pack(side=tk.LEFT, padx=3, pady=2)
+        row1.pack(anchor="w")
+
+        # Row 2
+        row2 = tk.Frame(editWind)
+        for name, func in buttons[half:]:
+            rb = ttk.Radiobutton(row2, text=name, value=name, variable=self.wind_selected, style="Wind.TButton",
+                command=lambda f=func: f(self.ca_config))
+            rb.pack(side=tk.LEFT, padx=3, pady=2)
+        row2.pack(anchor="w")
+
+        editWind.pack(fill=tk.BOTH)
+        windoptionsframe.pack()
+
+        emberOptionsframe = tk.Frame(self)
+        _Separator(emberOptionsframe).pack(fill=tk.X, pady=5)
+        labelframe = tk.Frame(emberOptionsframe)
+        label = tk.Label(labelframe, text="Enable Embers:")
+        label.pack(side=tk.LEFT)
+        labelframe.pack(fill=tk.BOTH)
+
+        editember = tk.Frame(emberOptionsframe)
+        self.ember_selected = tk.StringVar(value="Disable Embers") # Default selection
+        style = ttk.Style()
+        style.configure("Ember.TButton", relief="raised")
+        style.map("Ember.TButton", relief=[("selected", "sunken")])
+        for name, func in get_additional_ember_set(self.ca_config):
+            rb = ttk.Radiobutton(editember, text=name, value=name, variable=self.ember_selected, style="Ember.TButton",
+                command=lambda f=func: f(self.ca_config))
+            rb.pack(side=tk.LEFT, padx=2)
+        editember.pack(fill=tk.BOTH)
+
+        emberOptionsframe.pack()
+
         # Keep handles on the radio buttons for external use
         self.radiobuttons = [rdo_proportions, rdo_custom, rdo_centercell]
         self.set_default()
+
+    def apply_button_changes(self):
+        # Apply wind direction
+        wind_choice = self.wind_selected.get()
+        for name, func in get_additional_wind_dir(self.ca_config):
+            if name == wind_choice:
+                func(self.ca_config)
+                break
+
+        # Apply ember setting
+        ember_choice = self.ember_selected.get()
+        for name, func in get_additional_ember_set(self.ca_config):
+            if name == ember_choice:
+                func(self.ca_config)
+                break
 
     def update_config(self, ca_config):
         """Update configuration reference"""

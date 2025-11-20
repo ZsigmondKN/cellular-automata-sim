@@ -67,14 +67,13 @@ EMBER_DISTANCE_FOREST = (5, 10) # 1.25km to 2.5km
 IGNITION_DECREASE_WET = 0.1 # TODO: can we be more scientific about this
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
-    global time_step
 
+    # tick counter
+    global time_step
     time_step += 1
 
     if (time_step == 1):
         scuffed_init(grid, extras)
-
-    wind_direction = "north_east"
 
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
@@ -82,21 +81,22 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     ignition_chance = extras["ignition_chance"]
     state_type = check_state_types(grid)
     density_type = check_density(grid, combustable_fuel, material_type)
+    wind_direction = extras["wind_direction_set"]
+    ember_is_enabled = extras["ember_set"]
 
     # update state type
     burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
     perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
     # stage changes
-    ignite = check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, wind_direction) | check_ember(grid, state_type, material_type, wind_direction)
+    ignite = (check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, wind_direction) 
+              | check_ember(grid, state_type, material_type, wind_direction) if ember_is_enabled else False)
     burning = (state_type == "Burning")
     fire_high_density = (ignite | burning) & (density_type == "High")
     fire_medium_density = (ignite | burning) & (density_type == "Medium")
     fire_low_density = (ignite | burning) & (density_type == "Low")
     die_out = (state_type == "Burning") & (combustable_fuel <= 0)
     burned = (state_type == "Burned")
-
-
 
     # Fuel decrease for burning cells
     np.subtract(combustable_fuel, TICK_SPEED_IN_HOURS, out=combustable_fuel, where=burning)
@@ -138,14 +138,15 @@ def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_di
     # Neighbor index mapping
     #   0=nw, 1=n, 2=ne, 3=w, 4=e, 5=sw, 6=s, 7=se
     direction_map = {
-        "north":      [5, 6, 7], # sw, s, se
-        "north_east": [3, 5, 6], # w, sw, s
-        "east":       [0, 3, 5], # nw, w, sw
-        "south_east": [1, 0, 3], # n , nw, w
-        "south":      [2, 1, 0], # ne, n, nw
-        "south_west": [4, 2, 1], # e, ne, n
-        "west":       [7, 4, 2], # se, e, ne
-        "north_west": [6, 7, 4], # s, se, e
+        "No Wind" :   None,
+        "S to N" :    [5, 6, 7], # sw, s, se
+        "SW to NE" :  [3, 5, 6], # w, sw, s
+        "W to E" :    [0, 3, 5], # nw, w, sw
+        "NW to SE" :  [1, 0, 3], # n , nw, w
+        "N to S" :    [2, 1, 0], # ne, n, nw
+        "NE to SW" :  [4, 2, 1], # e, ne, n
+        "E to W":     [7, 4, 2], # se, e, ne
+        "SE to NW" :  [6, 7, 4], # s, se, e
     }
 
     if wind_direction not in direction_map:
@@ -190,15 +191,15 @@ def check_ember(grid, state_type, material_type, wind_direction):
     
     def get_landing_positions(emitting_indices, embers_distance, direction):
         direction_map = {
-            "north":      (-1,  0),
-            "south":      ( 1,  0),
-            "east":       ( 0,  1),
-            "west":       ( 0, -1),
-
-            "north_east": (-1,  1),
-            "north_west": (-1, -1),
-            "south_east": ( 1,  1),
-            "south_west": ( 1, -1),
+            "No Wind" : None,
+            "S to N" : (-1,  0),
+            "N to S" : ( 1,  0),
+            "W to E" : ( 0,  1),
+            "E to W" : ( 0, -1),
+            "SW to NE" : (-1,  1),
+            "SE to NW" : (-1, -1),
+            "NW to SE" : ( 1,  1),
+            "NE to SW" : ( 1, -1),
         }
 
         if direction not in direction_map:
@@ -403,6 +404,12 @@ def setup(args):
         for (x,y) in init_fire:
             config.initial_grid[x,y] = 11
 
+    config.wind_direction_set = getattr(config, "wind_direction_set", "No Wind")
+    config.ember_set = getattr(config, "ember_set", True)
+
+    print(f"Selected Wind direction was {config.wind_direction_set}", flush=True)
+    print(f"Ember usage was set to {config.ember_set}", flush=True)
+
     # ----------------------------------------------------------------------
     scuffed_init(grid, {})
 
@@ -457,7 +464,9 @@ def main():
     extra_attributes = {
         "combustable_fuel": config.combustable_fuel_grid,
         "material_type": config.material_type_grid,
-        "ignition_chance": config.ignition_chance_grid
+        "ignition_chance": config.ignition_chance_grid,
+        "wind_direction_set": config.wind_direction_set,
+        "ember_set": config.ember_set
     }
 
     # Append extra arguments to the transition function

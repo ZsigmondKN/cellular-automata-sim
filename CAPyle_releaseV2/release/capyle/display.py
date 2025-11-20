@@ -136,6 +136,8 @@ class Display(object):
         self.config_ui = _ConfigFrame(self.lframe, self.ca_config)
         self.config_ui.pack()
 
+        self.config_ui.apply_button_changes()
+
         # Bottom run button
         if self.lbotframe is not None:
             self.lbotframe.destroy()
