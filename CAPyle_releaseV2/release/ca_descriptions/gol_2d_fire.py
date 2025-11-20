@@ -55,7 +55,6 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     # get initial parameters
     combustable_fuel = extras["combustable_fuel"]
-    temperature_c = extras["temperature_c"]
     material_type = extras["material_type"]
     ignition_chance = extras["ignition_chance"]
     state_type = check_state_types(grid)
@@ -86,10 +85,6 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     burning_neighbours = (neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]) > 0
     perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
-    # Temperature increase for cells influenced by fire
-    temperature_increase = np.random.uniform(40, 300, size=perceptable_to_direct_flame.sum())
-    temperature_c[perceptable_to_direct_flame] += temperature_increase
-
     # Update grid
     grid[fire_high_density] = 9
     grid[fire_medium_density] = 10
@@ -101,13 +96,8 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
             grid[grid == 14] = 15
             print(f"Hit City at timestep! {time_step}", flush=True)
 
-    # Apply cooling to burned cells
-    # TODO: Find another way of tracking when we can regrow
-    temperature_decrease = np.random.uniform(1, 2, size=burned.sum())
-    temperature_c[burned] -= temperature_decrease
-
     # Apply regrowth
-    apply_regrowth(grid, neighbourcounts, temperature_c, die_out)
+    apply_regrowth(grid, neighbourcounts, die_out)
 
     return grid
 
@@ -169,7 +159,7 @@ def check_fuel(grid, combustable_fuel, state_type):
 time_since_gone = 0
 specific_gone_time_step = None
 
-def apply_regrowth(grid, neighborcounts, temperature, burned_out):
+def apply_regrowth(grid, neighborcounts, burned_out):
     global time_since_gone, specific_gone_time_step, time_step
 
     if (specific_gone_time_step is None):
@@ -198,7 +188,6 @@ def apply_regrowth(grid, neighborcounts, temperature, burned_out):
     # Reset any high density state to low density state (2 -> 0) e.t.c
     init_val = config.initial_initial_grid - (config.initial_initial_grid%3)
 
-    # Only returs on burned cells with a normal temperature
     burned_mask = (grid == 12) 
 
     prob_shape = (time_step - specific_gone_time_step) / 1200
@@ -259,12 +248,10 @@ def setup(args):
 
     config.initial_initial_grid = grid
 
-    config.temperature_grid_c = np.zeros(grid.shape, dtype=np.float32)
     config.combustable_fuel_grid = np.zeros(grid.shape, dtype=np.float32)
     config.material_type_grid = np.full(grid.shape, "Unknown", dtype=object)
     config.ignition_chance_grid = np.zeros(grid.shape, dtype=np.float32)
 
-    config.temperature_grid_c[:] = 25.0  # Default temperature
     config.combustable_fuel_grid[:] = 0.0  # default
 
     fuel_map = {
@@ -347,7 +334,6 @@ def main():
     config = setup(sys.argv[1:])
 
     extra_attributes = {
-        "temperature_c": config.temperature_grid_c,
         "combustable_fuel": config.combustable_fuel_grid,
         "material_type": config.material_type_grid,
         "ignition_chance": config.ignition_chance_grid
