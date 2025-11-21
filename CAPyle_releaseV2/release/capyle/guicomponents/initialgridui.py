@@ -126,7 +126,7 @@ class _InitialGridUI(tk.Frame, _ConfigUIComponent):
         labelframe.pack(fill=tk.BOTH)
 
         editember = tk.Frame(emberOptionsframe)
-        self.ember_selected = tk.StringVar(value="Disable Embers") # Default selection
+        self.ember_selected = tk.StringVar(value="Enable Embers") # Default selection
         style = ttk.Style()
         style.configure("Ember.TButton", relief="raised")
         style.map("Ember.TButton", relief=[("selected", "sunken")])

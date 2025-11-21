@@ -31,30 +31,30 @@ FOREST_STATES = range(3, 6)
 SCRUB_STATES = range(6, 9)
 BURNING_STATES = range(9, 12)
 
-# each tick is 2 hours
-TICK_SPEED_IN_HOURS = 2
+# each tick is 5 hours
+TICK_SPEED_IN_HOURS = 5
 
 # burning durration as outlined in assignments brief
-BURN_DURATION_SCRUB_LOW = 1
-BURN_DURATION_SCRUB_MEDIUM = 2
-BURN_DURATION_SCRUB_HIGH = 3
+BURN_DURATION_SCRUB_LOW = 3
+BURN_DURATION_SCRUB_MEDIUM = 5
+BURN_DURATION_SCRUB_HIGH = 7
 BURN_DURATION_CHAPARRAL_LOW = 1 * 24
-BURN_DURATION_CHAPARRAL_MEDIUM = 2 * 24
-BURN_DURATION_CHAPARRAL_HIGH = 3 * 24
-BURN_DURATION_FOREST_LOW = 24 * 10
-BURN_DURATION_FOREST_MEDIUM = 24 * 20
+BURN_DURATION_CHAPARRAL_MEDIUM = 3 * 24
+BURN_DURATION_CHAPARRAL_HIGH = 5 * 24
+BURN_DURATION_FOREST_LOW = 24 * 5
+BURN_DURATION_FOREST_MEDIUM = 24 * 10
 BURN_DURATION_FOREST_HIGH = 24 * 28
 
 # ignition chance percentage range per tick
-IGNITION_CHANCE_SCRUB = 10
-IGNITION_CHANCE_CHAPARRAL = 7
-IGNITION_CHANCE_FOREST = 2
+IGNITION_CHANCE_SCRUB = 7
+IGNITION_CHANCE_CHAPARRAL = 3
+IGNITION_CHANCE_FOREST = 1
 time_step = 0
 
 # ember chance percentage range per tick
-EMBER_CHANCE_SCRUB = 0.1
-EMBER_CHANCE_CHAPARRAL = 0.2
-EMBER_CHANCE_FOREST = 0.3
+EMBER_CHANCE_SCRUB = 1
+EMBER_CHANCE_CHAPARRAL = 2
+EMBER_CHANCE_FOREST = 3
 
 # ember distance spread range per tick
 EMBER_DISTANCE_SCRUB = (1, 2) # 250m to 500m
@@ -84,8 +84,12 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     perceptable_to_direct_flame = (burning_neighbours) & (state_type == "Flammable")
 
     # stage changes
-    ignite = (check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, wind_direction) 
-              | check_ember(grid, state_type, material_type, wind_direction) if ember_is_enabled else False)
+    base_ignite = check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, neighbourcounts, wind_direction)
+    if ember_is_enabled:
+        ember_ignite = check_ember(grid, state_type, material_type, wind_direction)
+        ignite = base_ignite | ember_ignite
+    else:
+        ignite = base_ignite
     burning = (state_type == "Burning")
     fire_high_density = (ignite | burning) & (density_type == "High")
     fire_medium_density = (ignite | burning) & (density_type == "Medium")
@@ -117,12 +121,17 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     return grid
 
-def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, wind_direction):
+def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, neighbourcounts, wind_direction):
     ignites = np.zeros(ignition_chance.shape, dtype=bool)
     random_draws = np.random.uniform(0, 100, size=perceptable_to_direct_flame.sum())
     wind_multiplier = affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction)
-    ignition_chance_with_wind = ignition_chance * wind_multiplier
-    ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance_with_wind[perceptable_to_direct_flame])
+    burning_neighbour_count = neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]
+    neighbour_multiplier = 1 + (burning_neighbour_count * 0.1)
+    ignition_chance_with_multipliers = ignition_chance * wind_multiplier * neighbour_multiplier
+    ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance_with_multipliers[perceptable_to_direct_flame])
+
+    failed_to_ignite = perceptable_to_direct_flame & (~ignites)
+    ignition_chance[failed_to_ignite] *= 1.10 # increase chance by 10% if failed to ignite
 
     return ignites
 
@@ -144,6 +153,15 @@ def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_di
         "SE to NW" :  [6, 7, 4], # s, se, e
     }
 
+    diagonal_winds = {
+        "SW to NE",
+        "NW to SE",
+        "NE to SW",
+        "SE to NW",
+    }
+
+    main_boost = 5.0 if wind_direction not in diagonal_winds else 2.0
+
     if wind_direction not in direction_map:
         return wind_multiplier  # No wind effect
 
@@ -158,7 +176,7 @@ def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_di
                (neighbourstates[diag_flow1] <= BURNING_STATE_END)] += 0.5
     
     wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[main__flow]) & 
-               (neighbourstates[main__flow] <= BURNING_STATE_END)] += 10.0
+               (neighbourstates[main__flow] <= BURNING_STATE_END)] += main_boost
     
     wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[diag_flow2]) & 
                (neighbourstates[diag_flow2] <= BURNING_STATE_END)] += 0.5
@@ -376,7 +394,7 @@ def setup(args):
         (0.7, 0.0, 0.0),    # BURNING - Low
 
         # BURNED
-        (0,0,0),
+        (0.15, 0.10, 0.05),
 
         # WATER
         (0.0, 0.4, 1.0),
@@ -391,7 +409,7 @@ def setup(args):
     init_fire = getattr(config, "initfire", None)
     if init_fire is not None:
         for (x,y) in init_fire:
-            config.initial_grid[x,y] = 11
+            config.initial_grid[x,y] = 9
 
     config.wind_direction_set = getattr(config, "wind_direction_set", "No Wind")
     config.ember_set = getattr(config, "ember_set", True)
