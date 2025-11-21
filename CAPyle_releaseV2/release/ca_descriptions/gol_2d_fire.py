@@ -26,10 +26,13 @@ BURNING_STATE_START = 9
 BURNING_STATE_END = 11
 BURNED_STATE = 12
 WATER_STATE = 13
-CHAPARRAL_STATES = range(0, 3)
+WET_CHAPARRAL_STATE = 16
+CHAPARRAL_STATES = list(range(0, 3)) + [WET_CHAPARRAL_STATE]
 FOREST_STATES = range(3, 6)
 SCRUB_STATES = range(6, 9)
 BURNING_STATES = range(9, 12)
+CITY_STATE = 14
+DAMAGED_CITY_STATE = 15
 
 # each tick is 5 hours
 TICK_SPEED_IN_HOURS = 5
@@ -60,6 +63,8 @@ EMBER_CHANCE_FOREST = 3
 EMBER_DISTANCE_SCRUB = (1, 2) # 250m to 500m
 EMBER_DISTANCE_CHAPARRAL = (3, 6) # 750m to 1500m
 EMBER_DISTANCE_FOREST = (5, 10) # 1.25km to 2.5km
+
+IGNITION_DECREASE_WET = 0.1 # TODO: can we be more scientific about this
 
 def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
@@ -112,8 +117,8 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     grid[die_out | burned] = 12
 
-    if (len(grid[perceptable_to_direct_flame & (grid == 14)]) > 0):
-            grid[grid == 14] = 15
+    if (len(grid[perceptable_to_direct_flame & (grid == CITY_STATE)]) > 0):
+            grid[grid == CITY_STATE] = DAMAGED_CITY_STATE
             print(f"Hit City at timestep: {time_step}", flush=True)
 
     # Apply regrowth
@@ -247,7 +252,7 @@ def check_ember(grid, state_type, material_type, wind_direction):
 def check_state_types(grid):
     state_type = np.full(grid.shape, "Unknown", dtype=object)
 
-    state_type[((FLAMMABLE_STATE_START <= grid) & (grid <= FLAMMABLE_STATE_END)) | (grid == 14)] = "Flammable"
+    state_type[((FLAMMABLE_STATE_START <= grid) & (grid <= FLAMMABLE_STATE_END)) | (grid == CITY_STATE) | (grid == WET_CHAPARRAL_STATE)] = "Flammable"
     state_type[(BURNING_STATE_START <= grid) & (grid <= BURNING_STATE_END)] = "Burning"
     state_type[grid == BURNED_STATE] = "Burned"
     state_type[grid == WATER_STATE] = "Water"
@@ -352,7 +357,10 @@ def setup(args):
         {'x': 20, 'y': 100, 'width': 80, 'height': 40, 'min_state': 3, 'max_state': 5, 'seed': 126},
         
         # WATER
+        {'x': 69, 'y': 39, 'width': 12, 'height': 42, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
         {'x': 70, 'y': 40, 'width': 10, 'height': 40, 'min_state': 13, 'max_state': 13},
+        
+        {'x': 99, 'y': 159, 'width': 62, 'height': 12, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
         {'x': 100, 'y': 160, 'width': 60, 'height': 10, 'min_state': 13, 'max_state': 13},
         
         # SCRUB
@@ -369,7 +377,7 @@ def setup(args):
 
     config.title = "Fire Simulation"
     config.dimensions = 2
-    config.states = range(16)
+    config.states = range(17)
     config.wrap = False
 
     config.state_colors = [
@@ -403,7 +411,10 @@ def setup(args):
         (1.0, 1.0, 1.0),
 
         # CITY, burned
-        (0.8, 0.8, 0.8)
+        (0.8, 0.8, 0.8),
+
+        # Wet chaparral
+        (0.8, 0.3, 0.4)
     ]
 
     init_fire = getattr(config, "initfire", None)
@@ -445,6 +456,7 @@ def scuffed_init(grid, extras):
         6: BURN_DURATION_SCRUB_LOW,
         7: BURN_DURATION_SCRUB_MEDIUM,
         8: BURN_DURATION_SCRUB_HIGH,
+        16: BURN_DURATION_CHAPARRAL_HIGH,
     }
 
     for state, val in fuel_map.items():
@@ -455,6 +467,7 @@ def scuffed_init(grid, extras):
     config.material_type_grid[np.isin(grid, SCRUB_STATES)] = "Scrub"
 
     config.ignition_chance_grid[np.isin(grid, CHAPARRAL_STATES)] = IGNITION_CHANCE_CHAPARRAL
+    config.ignition_chance_grid[grid == WET_CHAPARRAL_STATE] = IGNITION_CHANCE_CHAPARRAL*IGNITION_DECREASE_WET
     config.ignition_chance_grid[np.isin(grid, FOREST_STATES)] = IGNITION_CHANCE_FOREST
     config.ignition_chance_grid[np.isin(grid, SCRUB_STATES)] = IGNITION_CHANCE_SCRUB
 
