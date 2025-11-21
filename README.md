@@ -19,6 +19,7 @@ docker compose -f docker-compose-linux.yml up
         - [DISCUSSION] Fire spreads too quickly - Now it spreads at a 37km/h
         - [NEW/DONE] The more fire around the higher the chance for the ignite
         - [NEW/DONE] Progressive ignition probability 
+        - [DONE] Fire defined on the map burns out by the second frame and as a result sometimes the fire burns out on start.
     - [DONE] Embers
         - [DONE] Implement different directions
     - [DONE] Direct Flame Contact
@@ -31,7 +32,6 @@ docker compose -f docker-compose-linux.yml up
     - Calculate times for regrowth and link back to literature (forest should take months, grass weeks)
 - [ ] Map Updates - Week 8 activities
     - [DONE] Add city + fire sources (+size (find a source for this))
-        - [BUG] Fire defined on the map burns out by the second frame and as a result sometimes the fire burns out on start.
     - [WJ] Short Term Invervention
         - Adding wetness (parameters + new state)
     - [DONE] Long Term Intervention
