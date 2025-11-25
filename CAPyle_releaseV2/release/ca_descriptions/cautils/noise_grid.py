@@ -17,3 +17,27 @@ def generate_multi_region_noise_grid(shape, regions, global_seed=0):
         
         grid[y:y+h, x:x+w] = values.astype(int)
     return grid
+
+
+def integer_points_on_circle(cx, cy, r):
+    points = []
+    r2 = r * r
+
+    for x in range(cx - r, cx + r + 1):
+        dx2 = (x - cx) ** 2
+        dy2 = r2 - dx2
+
+        if dy2 < 0:
+            continue
+
+        y_root = dy2 ** 0.5
+
+        for y_real in (cy + y_root, cy - y_root):
+            y = round(y_real)
+
+            if abs((x - cx)**2 + (y - cy)**2) <= r2:
+                points.append((x, y))
+
+    points = list(set(points))
+    points.sort()
+    return points
