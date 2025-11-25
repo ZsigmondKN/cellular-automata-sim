@@ -119,7 +119,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     if (len(grid[perceptable_to_direct_flame & (grid == CITY_STATE)]) > 0):
             grid[grid == CITY_STATE] = DAMAGED_CITY_STATE
-            print(f"Hit City at timestep: {time_step}", flush=True)
+            print(f"Hit City at timestep: {time_step}, hours: {time_step * TICK_SPEED_IN_HOURS}", flush=True)
 
     # Apply regrowth
     apply_regrowth(grid, neighbourcounts, die_out)
@@ -301,12 +301,23 @@ def apply_regrowth(grid, neighborcounts, burned_out):
         time_since_gone += 1
         return
 
+    # Forest: Full recovery 10-15 years [4]
+    # 12.5 med
 
-    # Random chances TODO: what should these be
+    # Chap: 7-15 years [4]
+    # 11 med
+
+    # Gras: 2-3 years [5]
+    # 2.5 med
+
+    # at a scale of 1, each time step 17 days
+    # this satisfies the data on the ppt
+    regrow_tick_speed = 1
+
     regrow_probs = {
-        0: 0.04,
-        3: 0.02,
-        6: 0.2
+        0: 1/12.5 * regrow_tick_speed,
+        3: 1/11 * regrow_tick_speed,
+        6: 1/2.5 * regrow_tick_speed
     }
 
     # Reset any high density state to low density state (2 -> 0) e.t.c
