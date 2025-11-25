@@ -39,13 +39,12 @@ docker compose -f docker-compose-linux.yml up
     - [DONE] Remove dependence on temperature
 
 - [ ] Exta stuff (now)
-    - Remove logo
+    - [DONE] Remove logo
     - Update colors
-    - Tune fire
-    - update printLn to state hours that fire reaches town not ticks
+    - [DONE] update printLn to state hours that fire reaches town not ticks
+    - [DONE] Tune regroth
 
 - [ ] Exta stuff (after we get params from team)
-    - Tune regroth
     - Tune fire
 
 - [ ] Once we have date (after results)
