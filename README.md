@@ -32,12 +32,26 @@ docker compose -f docker-compose-linux.yml up
     - Calculate times for regrowth and link back to literature (forest should take months, grass weeks)
 - [ ] Map Updates - Week 8 activities
     - [DONE] Add city + fire sources (+size (find a source for this))
-    - [WJ] Short Term Invervention
+    - [DONE] Short Term Invervention
         - Adding wetness (parameters + new state)
     - [DONE] Long Term Intervention
         - Increasing Forest Size
     - [DONE] Remove dependence on temperature
+
+- [ ] Exta stuff (now)
+    - Remove logo
     - Update colors
+    - Tune fire
+    - update printLn to state hours that fire reaches town not ticks
+
+- [ ] Exta stuff (after we get params from team)
+    - Tune regroth
+    - Tune fire
+
+- [ ] Once we have date (after results)
+    - update long term with proper forest (quick)
+    - update short term to look like a water drop (will - quick)
+    - update long term prescribed burning (will - quick)
 
 # What factors to change
 **Default:**
