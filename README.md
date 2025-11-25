@@ -48,7 +48,7 @@ docker compose -f docker-compose-linux.yml up
     - Tune fire
 
 - [ ] Once we have date (after results)
-    - update long term with proper forest (quick - quick)
+    - update long term with proper forest (will - quick)
     - update short term to look like a water drop (will - quick)
     - update long term prescribed burning (will - quick)
 
