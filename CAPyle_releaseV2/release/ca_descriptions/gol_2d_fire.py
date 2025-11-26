@@ -452,6 +452,58 @@ def setup(args):
         
     ]
 
+    regions_with_more_forest = [
+        # BASE (CHAP)
+        {'x': 0, 'y': 0, 'width': 200, 'height': 200, 'min_state': 0, 'max_state': 2, 'seed': 123},
+
+        # FOREST
+        {'x': 50, 'y': 20, 'width': 30, 'height': 10, 'min_state': 3, 'max_state': 5, 'seed': 456},
+        {'x': 0, 'y': 20, 'width': 50, 'height': 80, 'min_state': 3, 'max_state': 5, 'seed': 789},
+        {'x': 0, 'y': 100, 'width': 100, 'height': 40, 'min_state': 3, 'max_state': 5, 'seed': 126},
+        {'x': 80, 'y': 140, 'width': 20, 'height': 30, 'min_state': 3, 'max_state': 5, 'seed': 125},
+        
+        # WATER
+        {'x': 69, 'y': 39, 'width': 12, 'height': 42, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
+        {'x': 70, 'y': 40, 'width': 10, 'height': 40, 'min_state': 13, 'max_state': 13},
+        
+        {'x': 99, 'y': 159, 'width': 62, 'height': 12, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
+        {'x': 100, 'y': 160, 'width': 60, 'height': 10, 'min_state': 13, 'max_state': 13},
+        
+        # SCRUB
+        {'x': 140, 'y': 40, 'width': 10, 'height': 90, 'min_state': 6, 'max_state': 8, 'seed': 193},
+
+        # CITY
+        {'x': 60, 'y': 200-20, 'width': 10, 'height': 10, 'min_state': 14, 'max_state': 14},
+        
+    ]
+
+    regions_with_controlled_burning = [
+        # BASE (CHAP)
+        {'x': 0, 'y': 0, 'width': 200, 'height': 200, 'min_state': 0, 'max_state': 2, 'seed': 123},
+
+        # FOREST
+        {'x': 50, 'y': 20, 'width': 30, 'height': 10, 'min_state': 3, 'max_state': 5, 'seed': 456},
+        {'x': 20, 'y': 20, 'width': 30, 'height': 80, 'min_state': 3, 'max_state': 5, 'seed': 789},
+        {'x': 20, 'y': 100, 'width': 80, 'height': 40, 'min_state': 3, 'max_state': 5, 'seed': 126},
+        
+        # WATER
+        {'x': 69, 'y': 39, 'width': 12, 'height': 42, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
+        {'x': 70, 'y': 40, 'width': 10, 'height': 40, 'min_state': 13, 'max_state': 13},
+        
+        {'x': 99, 'y': 159, 'width': 62, 'height': 12, 'min_state': WET_CHAPARRAL_STATE, 'max_state': WET_CHAPARRAL_STATE},
+        {'x': 100, 'y': 160, 'width': 60, 'height': 10, 'min_state': 13, 'max_state': 13},
+        
+        # SCRUB
+        {'x': 140, 'y': 40, 'width': 10, 'height': 90, 'min_state': 6, 'max_state': 8, 'seed': 193},
+
+        # CONTROLLED BURN AREAS
+        {'x': 20, 'y': 140, 'width': 5, 'height': 60, 'min_state': 12, 'max_state': 12, 'seed': 192},
+
+        # CITY
+        {'x': 60, 'y': 200-20, 'width': 10, 'height': 10, 'min_state': 14, 'max_state': 14},
+        
+    ]
+
     grid = generate_multi_region_noise_grid(shape=(200, 200), regions=regions, global_seed=2025)
 
     config.initial_initial_grid = grid
