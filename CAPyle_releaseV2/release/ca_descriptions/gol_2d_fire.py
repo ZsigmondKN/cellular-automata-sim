@@ -34,35 +34,46 @@ BURNING_STATES = range(9, 12)
 CITY_STATE = 14
 DAMAGED_CITY_STATE = 15
 
-# each tick is 1 hour
-TICK_SPEED_IN_HOURS = 1
+# each tick is 3 mins
+TICK_SPEED_IN_HOURS = 0.05
 
 # burning durration as outlined in assignments brief
-BURN_DURATION_SCRUB_LOW = 3 / 16
-BURN_DURATION_SCRUB_MEDIUM = 5 / 16
-BURN_DURATION_SCRUB_HIGH = 7 / 16
-BURN_DURATION_CHAPARRAL_LOW = (1 * 24) / 16
-BURN_DURATION_CHAPARRAL_MEDIUM = (3 * 24) / 16
-BURN_DURATION_CHAPARRAL_HIGH = (5 * 24) / 16
-BURN_DURATION_FOREST_LOW = (24 * 5) / 16
-BURN_DURATION_FOREST_MEDIUM = (24 * 10) / 16
-BURN_DURATION_FOREST_HIGH = (24 * 28) / 16
+DURATION_SCALE = 1/16
+BURN_DURATION_SCRUB_LOW = 1 * DURATION_SCALE
+BURN_DURATION_SCRUB_MEDIUM = 2 * DURATION_SCALE
+BURN_DURATION_SCRUB_HIGH = 3 * DURATION_SCALE
+BURN_DURATION_CHAPARRAL_LOW = 1 * 24 * DURATION_SCALE
+BURN_DURATION_CHAPARRAL_MEDIUM = 2 * 24 * DURATION_SCALE
+BURN_DURATION_CHAPARRAL_HIGH = 3 * 24 * DURATION_SCALE
+BURN_DURATION_FOREST_LOW = 10 * 24 * DURATION_SCALE
+BURN_DURATION_FOREST_MEDIUM = 14 * 24 * DURATION_SCALE
+BURN_DURATION_FOREST_HIGH = 28 * 24 * DURATION_SCALE
 
 # ignition chance percentage range per tick
-IGNITION_CHANCE_SCRUB = 46
-IGNITION_CHANCE_CHAPARRAL = 36
-IGNITION_CHANCE_FOREST = 9
+IGN_SCALE = 0.3
+IGNITION_CHANCE_SCRUB = 47.5 * IGN_SCALE
+IGNITION_CHANCE_CHAPARRAL = 35 * IGN_SCALE
+IGNITION_CHANCE_FOREST = 7.5 * IGN_SCALE
 time_step = 0
 
 # ember chance percentage range per tick
-EMBER_CHANCE_SCRUB = 1
-EMBER_CHANCE_CHAPARRAL = 2
-EMBER_CHANCE_FOREST = 3
+EMBER_SCALE = 1
+EMBER_CHANCE_SCRUB = 1 * EMBER_SCALE
+EMBER_CHANCE_CHAPARRAL = 2 * EMBER_SCALE
+EMBER_CHANCE_FOREST = 3 * EMBER_SCALE
 
 # ember distance spread range per tick
 EMBER_DISTANCE_SCRUB = (1, 2) # 250m to 500m
 EMBER_DISTANCE_CHAPARRAL = (3, 6) # 750m to 1500m
 EMBER_DISTANCE_FOREST = (5, 10) # 1.25km to 2.5km
+
+
+# multipliers
+NEIGHBOURHOOD_MULTIPLIER = 0
+WIND_MULTIPLIER_MAIN = 8.0
+WIND_MULTIPLIER_DIAG = 3.0
+WIND_MULTIPLIER_SIDE = 0.5
+FAILED_TO_IGNITE_MULTIPLIER = 0
 
 IGNITION_DECREASE_WET = 0.1 # TODO: can we be more scientific about this
 
@@ -103,7 +114,15 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
     burned = (state_type == "Burned")
 
     # Fuel decrease for burning cells
-    np.subtract(combustable_fuel, TICK_SPEED_IN_HOURS, out=combustable_fuel, where=burning)
+    # random factor per element, e.g. ±20% variation
+    rand_factor = np.random.uniform(0.2, 1.8, size=combustable_fuel.shape)
+
+    np.subtract(
+        combustable_fuel,
+        TICK_SPEED_IN_HOURS * rand_factor,
+        out=combustable_fuel,
+        where=burning
+    )
 
     # update state type
     state_type = check_state_types(grid)
@@ -119,7 +138,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     if (len(grid[perceptable_to_direct_flame & (grid == CITY_STATE)]) > 0):
             grid[grid == CITY_STATE] = DAMAGED_CITY_STATE
-            print(f"Hit City at timestep: {time_step}", flush=True)
+            print(f"Hit City at timestep: {time_step}, hours: {time_step * TICK_SPEED_IN_HOURS}", flush=True)
 
     # Apply regrowth
     apply_regrowth(grid, neighbourcounts, die_out)
@@ -131,13 +150,13 @@ def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourst
     random_draws = np.random.uniform(0, 100, size=perceptable_to_direct_flame.sum())
     wind_multiplier = affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction, wind_speed_kmh)
     burning_neighbour_count = neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]
-    neighbour_multiplier = 1 + (burning_neighbour_count * 0.1)
+    neighbour_multiplier = 1 + (burning_neighbour_count * NEIGHBOURHOOD_MULTIPLIER)
     ignition_chance_with_multipliers = ignition_chance * wind_multiplier * neighbour_multiplier
     ignition_chance_with_multipliers = np.minimum(ignition_chance_with_multipliers, 100)
     ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance_with_multipliers[perceptable_to_direct_flame])
 
     failed_to_ignite = perceptable_to_direct_flame & (~ignites)
-    ignition_chance[failed_to_ignite] *= 1.10 # increase chance by 10% if failed to ignite
+    ignition_chance[failed_to_ignite] *= (1 + FAILED_TO_IGNITE_MULTIPLIER) # increase chance by 10% if failed to ignite
 
     return ignites
 
@@ -278,11 +297,25 @@ def check_ember(grid, state_type, material_type, wind_direction):
     scrub_landing_x, scrub_landing_y = get_landing_positions(emitting_indices_scrub, embers_distance_scrub, wind_direction)
     chaparral_landing_x, chaparral_landing_y = get_landing_positions(emitting_indices_chaparral, embers_distance_chaparral, wind_direction)
     forest_landing_x, forest_landing_y = get_landing_positions(emitting_indices_forest, embers_distance_forest, wind_direction)
+
+    scrub_landing_mask = np.zeros(grid.shape, dtype=bool)
+    chaparral_landing_mask = np.zeros(grid.shape, dtype=bool)
+    forest_landing_mask = np.zeros(grid.shape, dtype=bool)
+
+    scrub_landing_mask[scrub_landing_x, scrub_landing_y] = True
+    chaparral_landing_mask[chaparral_landing_x, chaparral_landing_y] = True
+    forest_landing_mask[forest_landing_x, forest_landing_y] = True
+
+    is_scrub = material_type == "Scrub"
+    is_chaparral = material_type == "Chaparral"
+    is_forest = material_type == "Forest"
+
+    random_draws2 = np.random.uniform(0, 100, size=grid.shape)
+    ignited_scrub = is_scrub & scrub_landing_mask & (random_draws2 < IGNITION_CHANCE_SCRUB)
+    ignited_chaparral = is_chaparral & chaparral_landing_mask & (random_draws2 < IGNITION_CHANCE_CHAPARRAL)
+    ignited_forest = is_forest & forest_landing_mask & (random_draws2 < IGNITION_CHANCE_FOREST)
     
-    # Set embers_start_on at landing positions if perceptable_to_embers is True
-    embers_start_on[scrub_landing_x, scrub_landing_y] = perceptable_to_embers[scrub_landing_x, scrub_landing_y]
-    embers_start_on[chaparral_landing_x, chaparral_landing_y] = perceptable_to_embers[chaparral_landing_x, chaparral_landing_y]
-    embers_start_on[forest_landing_x, forest_landing_y] = perceptable_to_embers[forest_landing_x, forest_landing_y]
+    embers_start_on = (ignited_scrub | ignited_chaparral | ignited_forest)
     
     return embers_start_on
 
@@ -338,12 +371,23 @@ def apply_regrowth(grid, neighborcounts, burned_out):
         time_since_gone += 1
         return
 
+    # Forest: Full recovery 10-15 years [4]
+    # 12.5 med
 
-    # Random chances TODO: what should these be
+    # Chap: 7-15 years [4]
+    # 11 med
+
+    # Gras: 2-3 years [5]
+    # 2.5 med
+
+    # at a scale of 1, each time step 17 days
+    # this satisfies the data on the ppt
+    regrow_tick_speed = 1
+
     regrow_probs = {
-        0: 0.04,
-        3: 0.02,
-        6: 0.2
+        0: 1/12.5 * regrow_tick_speed,
+        3: 1/11 * regrow_tick_speed,
+        6: 1/2.5 * regrow_tick_speed
     }
 
     # Reset any high density state to low density state (2 -> 0) e.t.c
@@ -445,13 +489,13 @@ def setup(args):
         (0.0, 0.4, 1.0),
 
         # CITY
-        (1.0, 1.0, 1.0),
-
-        # CITY, burned
         (0.8, 0.8, 0.8),
 
+        # CITY, burned
+        (0.82, 0.7, 0.65),
+
         # Wet chaparral
-        (0.8, 0.3, 0.4)
+        (0.6, 0.7, 0.15)
     ]
 
     init_fire = getattr(config, "initfire", None)
