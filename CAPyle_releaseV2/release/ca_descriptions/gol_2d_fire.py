@@ -419,13 +419,13 @@ def setup(args):
         (0.0, 0.4, 1.0),
 
         # CITY
-        (1.0, 1.0, 1.0),
-
-        # CITY, burned
         (0.8, 0.8, 0.8),
 
+        # CITY, burned
+        (0.82, 0.7, 0.65),
+
         # Wet chaparral
-        (0.8, 0.3, 0.4)
+        (0.6, 0.7, 0.15)
     ]
 
     init_fire = getattr(config, "initfire", None)
