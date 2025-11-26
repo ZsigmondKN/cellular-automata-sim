@@ -115,7 +115,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     # Fuel decrease for burning cells
     # random factor per element, e.g. ±20% variation
-    rand_factor = np.random.uniform(0.2, 1.8, size=combustable_fuel.shape)
+    rand_factor = np.random.uniform(0.8, 1.2, size=combustable_fuel.shape)
 
     np.subtract(
         combustable_fuel,
