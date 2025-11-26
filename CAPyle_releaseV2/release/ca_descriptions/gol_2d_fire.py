@@ -39,9 +39,9 @@ TICK_SPEED_IN_HOURS = 0.05
 
 # burning durration as outlined in assignments brief
 DURATION_SCALE = 1/16
-BURN_DURATION_SCRUB_LOW = 1 * DURATION_SCALE
-BURN_DURATION_SCRUB_MEDIUM = 2 * DURATION_SCALE
-BURN_DURATION_SCRUB_HIGH = 3 * DURATION_SCALE
+BURN_DURATION_SCRUB_LOW = 2 * DURATION_SCALE
+BURN_DURATION_SCRUB_MEDIUM = 4 * DURATION_SCALE
+BURN_DURATION_SCRUB_HIGH = 6 * DURATION_SCALE
 BURN_DURATION_CHAPARRAL_LOW = 1 * 24 * DURATION_SCALE
 BURN_DURATION_CHAPARRAL_MEDIUM = 2 * 24 * DURATION_SCALE
 BURN_DURATION_CHAPARRAL_HIGH = 3 * 24 * DURATION_SCALE
@@ -115,11 +115,11 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     # Fuel decrease for burning cells
     # random factor per element, e.g. ±20% variation
-    rand_factor = np.random.uniform(0.8, 1.2, size=combustable_fuel.shape)
+    # rand_factor = np.random.uniform(1, 1, size=combustable_fuel.shape)
 
     np.subtract(
         combustable_fuel,
-        TICK_SPEED_IN_HOURS * rand_factor,
+        TICK_SPEED_IN_HOURS,
         out=combustable_fuel,
         where=burning
     )
