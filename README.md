@@ -43,6 +43,7 @@ docker compose -f docker-compose-linux.yml up
     - Update colors
     - [DONE] update printLn to state hours that fire reaches town not ticks
     - [DONE] Tune regroth
+    - [MISC] When regroth starts city turns brack to not burned(looks nice)
 
 - [ ] Exta stuff (after we get params from team)
     - Tune fire
