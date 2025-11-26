@@ -40,13 +40,12 @@ docker compose -f docker-compose-linux.yml up
 
 - [ ] Exta stuff (now)
     - [DONE] Remove logo
-    - Update colors
+    - [DONE] Update colors
     - [DONE] update printLn to state hours that fire reaches town not ticks
     - [DONE] Tune regroth
-    - [MISC] When regroth starts city turns brack to not burned(looks nice)
 
 - [ ] Exta stuff (after we get params from team)
-    - Tune fire
+    - [DONE] Tune fire
 
 - [ ] Once we have date (after results)
     - update long term with proper forest (will - quick)
