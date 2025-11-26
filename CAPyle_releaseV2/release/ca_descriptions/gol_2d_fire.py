@@ -34,24 +34,24 @@ BURNING_STATES = range(9, 12)
 CITY_STATE = 14
 DAMAGED_CITY_STATE = 15
 
-# each tick is 5 hours
-TICK_SPEED_IN_HOURS = 5
+# each tick is 1 hour
+TICK_SPEED_IN_HOURS = 1
 
 # burning durration as outlined in assignments brief
-BURN_DURATION_SCRUB_LOW = 3
-BURN_DURATION_SCRUB_MEDIUM = 5
-BURN_DURATION_SCRUB_HIGH = 7
-BURN_DURATION_CHAPARRAL_LOW = 1 * 24
-BURN_DURATION_CHAPARRAL_MEDIUM = 3 * 24
-BURN_DURATION_CHAPARRAL_HIGH = 5 * 24
-BURN_DURATION_FOREST_LOW = 24 * 5
-BURN_DURATION_FOREST_MEDIUM = 24 * 10
-BURN_DURATION_FOREST_HIGH = 24 * 28
+BURN_DURATION_SCRUB_LOW = 3 / 16
+BURN_DURATION_SCRUB_MEDIUM = 5 / 16
+BURN_DURATION_SCRUB_HIGH = 7 / 16
+BURN_DURATION_CHAPARRAL_LOW = (1 * 24) / 16
+BURN_DURATION_CHAPARRAL_MEDIUM = (3 * 24) / 16
+BURN_DURATION_CHAPARRAL_HIGH = (5 * 24) / 16
+BURN_DURATION_FOREST_LOW = (24 * 5) / 16
+BURN_DURATION_FOREST_MEDIUM = (24 * 10) / 16
+BURN_DURATION_FOREST_HIGH = (24 * 28) / 16
 
 # ignition chance percentage range per tick
-IGNITION_CHANCE_SCRUB = 7
-IGNITION_CHANCE_CHAPARRAL = 3
-IGNITION_CHANCE_FOREST = 1
+IGNITION_CHANCE_SCRUB = 46
+IGNITION_CHANCE_CHAPARRAL = 36
+IGNITION_CHANCE_FOREST = 9
 time_step = 0
 
 # ember chance percentage range per tick
@@ -126,13 +126,14 @@ def transition_func(grid, neighbourstates, neighbourcounts, extras):
 
     return grid
 
-def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, neighbourcounts, wind_direction):
+def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourstates, neighbourcounts, wind_direction, wind_speed_kmh=25):
     ignites = np.zeros(ignition_chance.shape, dtype=bool)
     random_draws = np.random.uniform(0, 100, size=perceptable_to_direct_flame.sum())
-    wind_multiplier = affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction)
+    wind_multiplier = affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction, wind_speed_kmh)
     burning_neighbour_count = neighbourcounts[9] + neighbourcounts[10] + neighbourcounts[11]
     neighbour_multiplier = 1 + (burning_neighbour_count * 0.1)
     ignition_chance_with_multipliers = ignition_chance * wind_multiplier * neighbour_multiplier
+    ignition_chance_with_multipliers = np.minimum(ignition_chance_with_multipliers, 100)
     ignites[perceptable_to_direct_flame] = (random_draws < ignition_chance_with_multipliers[perceptable_to_direct_flame])
 
     failed_to_ignite = perceptable_to_direct_flame & (~ignites)
@@ -140,51 +141,87 @@ def check_ignite(grid, ignition_chance, perceptable_to_direct_flame, neighbourst
 
     return ignites
 
-def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction):
-    wind_multiplier = np.zeros(grid.shape, dtype=np.float32)
-    wind_multiplier[:] = 1.0 # Base multiplier
-
-    # Neighbor index mapping
-    #   0=nw, 1=n, 2=ne, 3=w, 4=e, 5=sw, 6=s, 7=se
-    direction_map = {
-        "No Wind" :   None,
-        "S to N" :    [5, 6, 7], # sw, s, se
-        "SW to NE" :  [3, 5, 6], # w, sw, s
-        "W to E" :    [0, 3, 5], # nw, w, sw
-        "NW to SE" :  [1, 0, 3], # n , nw, w
-        "N to S" :    [2, 1, 0], # ne, n, nw
-        "NE to SW" :  [4, 2, 1], # e, ne, n
-        "E to W":     [7, 4, 2], # se, e, ne
-        "SE to NW" :  [6, 7, 4], # s, se, e
-    }
-
-    diagonal_winds = {
-        "SW to NE",
-        "NW to SE",
-        "NE to SW",
-        "SE to NW",
-    }
-
-    main_boost = 5.0 if wind_direction not in diagonal_winds else 2.0
-
-    if wind_direction not in direction_map:
-        return wind_multiplier  # No wind effect
-
-    upwind_indices = direction_map[wind_direction]
-
-    diag_flow1 = upwind_indices[0]
-    main__flow = upwind_indices[1]
-    diag_flow2 = upwind_indices[2]
-
-
-    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[diag_flow1]) & 
-               (neighbourstates[diag_flow1] <= BURNING_STATE_END)] += 0.5
+def affected_by_wind(grid, perceptable_to_direct_flame, neighbourstates, wind_direction, wind_speed_kmh=25):
+    wind_multiplier = np.ones(grid.shape, dtype=np.float32)
     
-    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[main__flow]) & 
-               (neighbourstates[main__flow] <= BURNING_STATE_END)] += main_boost
+    # Wind coefficient (from literature)
+    C_WIND = 0.03 
     
-    wind_multiplier[perceptable_to_direct_flame & (BURNING_STATE_START <= neighbourstates[diag_flow2]) & 
-               (neighbourstates[diag_flow2] <= BURNING_STATE_END)] += 0.5
+    #Direction to angle mapping (in degrees)
+    #Angle is direction TOWARDS which wind blows
+    wind_angles = {
+        "No Wind":    None,
+        "S to N":     0,      # North
+        "SW to NE":   45,     # Northeast  
+        "W to E":     90,     # East
+        "NW to SE":   135,    # Southeast
+        "N to S":     180,    # South
+        "NE to SW":   225,    # Southwest
+        "E to W":     270,    # West
+        "SE to NW":   315,    # Northwest
+    }
+    
+    # Neighbour indexing system:
+    #     0   1   2
+    #     3  [ ]  4
+    #     5   6   7
+    # Where: 0=NW, 1=N, 2=NE, 3=W, 4=E, 5=SW, 6=S, 7=SE
+    
+    neighbor_angles = {
+        0: 315,    # NW (northwest)
+        1: 0,      # N  (north)
+        2: 45,     # NE (northeast)
+        3: 270,    # W  (west)
+        4: 90,     # E  (east)
+        5: 225,    # SW (southwest)
+        6: 180,    # S  (south)
+        7: 135,    # SE (southeast)
+    }
+    
+    if wind_direction == "No Wind" or wind_direction not in wind_angles:
+        return wind_multiplier
+    
+    wind_angle = wind_angles[wind_direction]
+    
+    # Calculate multiplier for each neighbor direction
+    for neighbor_idx, neighbor_angle in neighbor_angles.items():
+        # Calculate where this neighbor is relative to wind direction
+        # We want to boost neighbors that are UPWIND
+        # So add 180° to wind_angle to get upwind direction
+        upwind_angle = (wind_angle + 180) % 360
+        
+        # Now calculate angle difference between neighbor and upwind direction
+        angle_diff = abs(upwind_angle - neighbor_angle)
+        
+        # Handle wrap-around (e.g., 10° and 350° are only 20° apart, not 340°)
+        if angle_diff > 180:
+            angle_diff = 360 - angle_diff
+        
+        # Convert to radians
+        angle_rad = np.radians(angle_diff)
+        
+        # Calculate directional effect: 
+        # cos(0°) = 1.0 (fire spreading directly downwind)
+        # cos(90°) = 0.0 (fire spreading perpendicular to wind)
+        # cos(180°) = -1.0 (fire spreading directly upwind)
+        directional_effect = np.cos(angle_rad)
+        
+        # Wind multiplier formula: 1 + C_wind × wind_speed × cos(θ)
+        neighbor_multiplier = 1.0 + C_WIND * wind_speed_kmh * directional_effect
+        
+        # Ensure multiplier stays positive (minimum 10% for upwind spread)
+        neighbor_multiplier = max(0.1, neighbor_multiplier)
+        
+        # Apply to cells with burning neighbor in this direction
+        has_burning_neighbor = (
+            perceptable_to_direct_flame & 
+            (BURNING_STATE_START <= neighbourstates[neighbor_idx]) & 
+            (neighbourstates[neighbor_idx] <= BURNING_STATE_END)
+        )
+        
+        # Update wind multiplier for cells affected by this neighbor
+        wind_multiplier[has_burning_neighbor] = neighbor_multiplier
+        
     return wind_multiplier
 
 def check_ember(grid, state_type, material_type, wind_direction):
