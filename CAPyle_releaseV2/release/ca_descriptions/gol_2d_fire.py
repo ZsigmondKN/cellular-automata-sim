@@ -5,7 +5,7 @@
 import random
 import sys
 import inspect
-from cautils.noise_grid import generate_multi_region_noise_grid
+from cautils.noise_grid import generate_multi_region_noise_grid, integer_points_on_circle
 
 this_file_loc = (inspect.stack()[0][1])
 main_dir_loc = this_file_loc[:this_file_loc.index('ca_descriptions')]
@@ -554,6 +554,14 @@ def setup(args):
     if init_fire is not None:
         for (x,y) in init_fire:
             config.initial_grid[x,y] = 9
+
+    is_wet_enabled = True
+    # Radius of 2 gives us  12.5 km^2
+    # change cx and cy to move
+    if (is_wet_enabled and getattr(config, "initial_grid", None) is not None):
+        circle_pos = integer_points_on_circle(cy=70, cx=200-30, r=2*4)
+        for (x,y) in circle_pos:
+            config.initial_grid[x,y] = WET_CHAPARRAL_STATE
 
     config.wind_direction_set = getattr(config, "wind_direction_set", "No Wind")
     config.ember_set = getattr(config, "ember_set", True)
