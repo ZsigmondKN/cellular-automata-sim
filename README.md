@@ -1,68 +1,28 @@
-# Bioinspired Assignment
+# Bioinspired Assignment running instructions
 
-Run on windows
+1, Have Docker and XLaunch running.
+
+2a, For running on windows and Mac, run the following in the main dir:
 ```sh
 docker compose up
 ```
 
-Run on linux
+2b, For running on linux, run the following in the main dir:
 ```sh
 docker compose -f docker-compose-linux.yml up
 ```
 
-# TODO
-- [x] Populate initial map - Will
-- [ ] Buring function - Zig
-    - Research + Initial Write-Up (Atal)
-    - [DONE] Convection
-        - [DONE] Implement different directions
-        - [DISCUSSION] Fire spreads too quickly - Now it spreads at a 37km/h
-        - [NEW/DONE] The more fire around the higher the chance for the ignite
-        - [NEW/DONE] Progressive ignition probability 
-        - [DONE] Fire defined on the map burns out by the second frame and as a result sometimes the fire burns out on start.
-    - [DONE] Embers
-        - [DONE] Implement different directions
-    - [DONE] Direct Flame Contact
-    - [DONE] Change State (check fuel amount if burning) (chenge fire color based on density, purely performative but nice to have)
-    - [DONE] Ensure different materials have different properties
-        - [CHECK] Check that the fire still burns for the correct time after finishing all the other todos
-- [ ] Regrowth Function - Will
-    - Research + Initial Write-Up (Atal)
-    - [DONE] Transition
-    - Calculate times for regrowth and link back to literature (forest should take months, grass weeks)
-- [ ] Map Updates - Week 8 activities
-    - [DONE] Add city + fire sources (+size (find a source for this))
-    - [DONE] Short Term Invervention
-        - Adding wetness (parameters + new state)
-    - [DONE] Long Term Intervention
-        - Increasing Forest Size
-    - [DONE] Remove dependence on temperature
+3, When the CAPyLE window launches: \
+3.1, Click File \
+3.2, Click Open \
+3.3, Select "gol_2d_fire.py" \
+3.4, Click Open again \
+3.5, Maximise the window
 
-- [ ] Exta stuff (now)
-    - [DONE] Remove logo
-    - [DONE] Update colors
-    - [DONE] update printLn to state hours that fire reaches town not ticks
-    - [DONE] Tune regroth
+4, To run the town fire simulation: \
+4.1, select the desired "Grid Setup Option" \
+4.2, [optional] change the wind direction from the pre allocated one \
+4.3, [optional] you can disable fire ember production
+4.4, Click "Apply configuration and run CA"
 
-- [ ] Exta stuff (after we get params from team)
-    - [DONE] Tune fire
-
-- [ ] Once we have date (after results)
-    - update long term with proper forest (will - quick)
-    - update short term to look like a water drop (will - quick)
-    - update long term prescribed burning (will - quick)
-
-# What factors to change
-**Default:**
-- Power Plant [Wind South]
-- Incinerator [Wind South]
-
-**Power Plant & Incinerator:**
-- Short Term
-- Long Term
-- Short + Long Term
-
-**Incinerator:**
-- Wind South
-- Wind North
-- Wind South East
+5, Now you can press "Play" to see the simulation in action.
