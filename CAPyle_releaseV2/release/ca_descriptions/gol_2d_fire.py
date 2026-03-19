@@ -555,7 +555,7 @@ def setup(args):
         for (x,y) in init_fire:
             config.initial_grid[x,y] = 9
 
-    is_wet_enabled = True
+    is_wet_enabled = False
     # Radius of 2 gives us  12.5 km^2
     # change cx and cy to move
     if (is_wet_enabled and getattr(config, "initial_grid", None) is not None):
