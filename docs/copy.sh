@@ -1,1 +1,0 @@
-cp ~/repos/UniGen/Logseq/pages/BIO___Proj.md README.md
