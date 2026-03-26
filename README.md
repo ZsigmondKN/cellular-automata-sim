@@ -1,28 +1,37 @@
-# Bioinspired Assignment running instructions
+# Cellular Automata Fire Simulation
 
-1, Have Docker and XLaunch running.
+![Fire Simulation Demo](docs//images/example_1.png)
 
-2a, For running on windows and Mac, run the following in the main dir:
-```sh
-docker compose up
-```
+## Overview
+This project is a grid-based cellular automata simulation used to model wildfire spread under varying environmental conditions such as wind, vegetation type, and fuel density. It includes an interactive GUI for configuring and visualising simulations in real time.
 
-2b, For running on linux, run the following in the main dir:
-```sh
-docker compose -f docker-compose-linux.yml up
-```
+## Tech Stack
+- Python
+- NumPy
+- Tkinter
+- Matplotlib
 
-3, When the CAPyLE window launches: \
-3.1, Click File \
-3.2, Click Open \
-3.3, Select "gol_2d_fire.py" \
-3.4, Click Open again \
-3.5, Maximise the window
+## Key Features
+- Fire spread simulation influenced by wind direction and fuel density  
+- Multiple vegetation types with different burn behaviours  
+- Ember-based long-range fire propagation  
+- Interactive GUI for configuring and running simulations  
 
-4, To run the town fire simulation: \
-4.1, select the desired "Grid Setup Option" \
-4.2, [optional] change the wind direction from the pre allocated one \
-4.3, [optional] you can disable fire ember production
-4.4, Click "Apply configuration and run CA"
+## How to Run
 
-5, Now you can press "Play" to see the simulation in action.
+1. Ensure Docker is installed and XLaunch (or an X11 display server) is running.
+
+2. Start the application:
+   - Windows / Mac: `docker compose up`
+   - Linux: `docker compose -f docker-compose-linux.yml up`
+
+3. In the CAPyLE window:
+   - Go to **File → Open**
+   - Select `gol_2d_fire.py` and open it
+
+4. Configure and run the simulation:
+   - Choose a **Grid Setup Option**
+   - (Optional) Adjust wind direction or disable embers
+   - Click **Apply configuration and run CA**
+
+5. Press **Play** to start the simulation.
